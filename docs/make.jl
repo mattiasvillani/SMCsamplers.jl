@@ -4,20 +4,18 @@ using Documenter
 DocMeta.setdocmeta!(SMCsamplers, :DocTestSetup, :(using SMCsamplers); recursive=true)
 
 makedocs(;
-    modules=[SMCsamplers],
-    authors="Mattias Villani",
     sitename="SMCsamplers.jl",
-    format=Documenter.HTML(;
-        canonical="https://mattiasvillani.github.io/SMCsamplers.jl",
-        edit_link="main",
-        assets=String[],
-    ),
-    pages=[
+    authors="Mattias Villani",
+    format = Documenter.HTML(prettyurls = false),
+    doctest = true,
+    pages = Any[
         "Home" => "index.md",
+        "Particle Gibbs" => "ParticleGibbs.md",
+        "FFBS" => "FFBS.md",
     ],
 )
 
-deploydocs(;
-    repo="github.com/mattiasvillani/SMCsamplers.jl",
-    devbranch="main",
-)
+#deploydocs(;
+#    repo="github.com/mattiasvillani/SMCsamplers.jl",
+#  devbranch="main",
+#)
