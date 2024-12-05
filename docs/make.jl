@@ -6,7 +6,7 @@ DocMeta.setdocmeta!(SMCsamplers, :DocTestSetup, :(using SMCsamplers); recursive=
 makedocs(;
     sitename="SMCsamplers.jl",
     authors="Mattias Villani",
-    format = Documenter.HTML(prettyurls = false),
+    format = Documenter.HTML(prettyurls = true),
     doctest = true,
     pages = Any[
         "Home" => "index.md",
