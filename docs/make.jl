@@ -14,9 +14,10 @@ makedocs(;
         assets=String[],
     ),
     pages = Any[
-        "Home" => "index.md",
+        "Home" => "home.md",
         "Particle Gibbs" => "ParticleGibbs.md",
         "FFBS" => "FFBS.md",
+        "Index" => "index.md",
     ],
 )
 
