@@ -1,12 +1,12 @@
 # # Linear Gaussian state space model
 
-# In this example we explore from the joint posterior of the state in a simple linear gaussian state space (LGSS) model with known static parameters: 
+# In this example we explore the joint posterior of the state $x_t$ in a simple linear gaussian state space (LGSS) model with known static parameters: 
 #
 # ```math
 # \begin{align*}
-#   x_0 &\sim N(0, \sigma_v/\sqrt{1-a^2})  \\
+#   y_t &= x_t + \epsilon_t, \epsilon_t \sim N(0,\sigma_e) \\
 #   x_t &= ax_{t-1} + \nu_t, \nu_t \sim N(0,\sigma_v) \\
-#   y_t &= x_t + \epsilon_t, \epsilon_t \sim N(0,\sigma_e)
+#   x_0 &\sim N(0, \sigma_v/\sqrt{1-a^2})  
 # \end{align*}
 # ```
 
@@ -14,7 +14,9 @@
 # 1. Particle Gibbs with Ancestor Sampling (PGAS)
 # 2. Forward Filtering Backward Sampling (FFBS)
 
+# First some preliminaries:
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random
+
 gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
@@ -22,7 +24,8 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
 myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
-# Set up LGSS model structure for PGAS and set static parameter values
+# ### Set up the state-space model
+# Set up static parameter structure and the model distributions for PGAS, and set static parameter values
 mutable struct LGSSParams 
     a::Float64
     σᵥ::Float64
@@ -55,16 +58,15 @@ plot(x; label="state, x", xlabel="t", lw = 2, legend = :topleft, color = colors[
 plot!(y; seriestype=:scatter, label="observed, y", xlabel="t", markersize = 2,
     color = colors[1], markerstrokecolor = :auto)
 
-# Algorithm settings
+# ### PGAS sampling
 Nₚ = 20      # Number of particles for PGAS
 Nₛ = 1000;   # Number of samples from posterior
-
-# ### Run PGAS
 PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation)
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
 PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
-    
-# Set up state-space model for FFBS
+
+# ### FFBS Sampling
+## Set up the LGSS for FFBS and sample
 Σₑ = [θ.σₑ^2]
 Σₙ = [θ.σᵥ^2]
 μ₀ = [0;;]
@@ -73,21 +75,19 @@ A = θ.a
 C = 1
 B = 0
 U = zeros(T,1);
-
-# ### Run FFBS
 FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
 FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
 FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
 
 # ### Plot the posterior mean and 95% C.I. intervals from both algorithms
-plottrue = false
+plottrue = true
 p = length(prior(θ))
 plt = []
 for j in 1:p
 
     #True state evolution
     if plottrue
-        plt_tmp = plot(x, c = :gray, lw = 1, label = "true state")
+        plt_tmp = plot(x, c = colors[3], lw = 1, label = "true state")
     else
         plt_tmp = plot()
     end
