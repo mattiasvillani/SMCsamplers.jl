@@ -1,6 +1,6 @@
 # Uses PGAS to simulate from the posterior of the state in stochastic volatility (SV) model:
 #   x₀ ∼ N(0, σ₀)
-#   xₜ = axₜ₋₁ + νₜ, νₜ ∼ N(0,σᵥ)
+#   xₜ = a⋅xₜ₋₁ + νₜ, νₜ ∼ N(0,σᵥ)
 #   yₜ = exp(xₜ/2)εₜ, εₜ ∼ N(0,1)
 
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random
@@ -23,17 +23,17 @@ prior(θ) = Normal(0, θ.σ₀)
 transition(θ, state, t) = Normal(θ.a * state, θ.σᵥ)  
 observation(θ, state, t) = Normal(0, exp(state/2))   
 
-# Set up Linear Gaussian State Space Model
+# Set model parameters
 a = 0.9         # Persistence
-σᵥ = 1        # State std deviation
-σ₀ = 0.5        # Observation std deviation
+σᵥ = 1          # State std deviation
+σ₀ = 0.5        # Initial observation std deviation
 T = 200         # Length of time series
 
-# Algorithm settings
-Nₚ = 20      # Number of particles for PGAS
-Nₛ = 1000     # Number of samples from posterior
-
 θ = SVParams(a, σᵥ, σₑ) # Set up parameter struct for PGAS
+
+# Algorithm settings
+Nₚ = 20         # Number of particles for PGAS
+Nₛ = 1000       # Number of samples from posterior
 
 # Simulate data from SV model
 x = zeros(T)

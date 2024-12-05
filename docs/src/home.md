@@ -6,7 +6,4 @@ CurrentModule = SMCsamplers
 
 Documentation for [SMCsamplers](https://github.com/mattiasvillani/SMCsamplers.jl).
 
-```@autodocs
-Modules = [SMCsamplers]
-```
 
