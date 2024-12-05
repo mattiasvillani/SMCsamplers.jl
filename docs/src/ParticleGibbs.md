@@ -1,3 +1,4 @@
 ```@docs
 PGASsampler
+PGASupdate
 ```

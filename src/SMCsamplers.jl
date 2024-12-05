@@ -13,6 +13,7 @@ using Measures, PDMats, LaTeXStrings
 
 include("FFBSsamplers.jl")
 export FFBS, FFBSx, FFBS_unscented
+export kalmanfilter_update, kalmanfilter_update_extended, kalmanfilter_update_unscented
 
 include("ParticleGibbsSamplers.jl")
 export PGASupdate, PGASsampler

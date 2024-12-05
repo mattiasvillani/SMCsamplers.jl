@@ -5,9 +5,14 @@ DocMeta.setdocmeta!(SMCsamplers, :DocTestSetup, :(using SMCsamplers); recursive=
 
 makedocs(;
     sitename="SMCsamplers.jl",
+    modules=[SMCsamplers],
     authors="Mattias Villani",
-    format = Documenter.HTML(prettyurls = true),
-    doctest = true,
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", "false") == "true",
+        canonical="https://mattiasvillani.github.io/SMCsamplers.jl",
+        edit_link="main",
+        assets=String[],
+    ),
     pages = Any[
         "Home" => "index.md",
         "Particle Gibbs" => "ParticleGibbs.md",
@@ -15,7 +20,6 @@ makedocs(;
     ],
 )
 
-#deploydocs(;
-#    repo="github.com/mattiasvillani/SMCsamplers.jl",
-#  devbranch="main",
-#)
+deploydocs(;
+    repo="github.com/mattiasvillani/SMCsamplers.jl",
+)
