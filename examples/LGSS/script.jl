@@ -1,44 +1,45 @@
-# Simulates from the posterior of the state in linear gaussian state space (LGSS) model:
-#   x₀ ∼ N(0, σᵥ/√(1-a²))
-#   xₜ = axₜ₋₁ + νₜ, νₜ ∼ N(0,σᵥ)
-#   yₜ = xₜ + εₜ, εₜ ∼ N(0,σₑ)
+# # Linear Gaussian state space model
+
+# In this example we explore from the joint posterior of the state in a simple linear gaussian state space (LGSS) model with known static parameters: 
+#
+# ```math
+# \begin{align*}
+#   x_0 &\sim N(0, \sigma_v/\sqrt{1-a^2})  \\
+#   x_t &= ax_{t-1} + \nu_t, \nu_t \sim N(0,\sigma_v) \\
+#   y_t &= x_t + \epsilon_t, \epsilon_t \sim N(0,\sigma_e)
+# \end{align*}
+# ```
+
 # Two algorithms are compared: 
 # 1. Particle Gibbs with Ancestor Sampling (PGAS)
 # 2. Forward Filtering Backward Sampling (FFBS)
 
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random
-
-# Plot settings
 gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
 myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
-Random.seed!(123)
+Random.seed!(123);
 
-# Set up LGSS model structure for PGAS
+# Set up LGSS model structure for PGAS and set static parameter values
 mutable struct LGSSParams 
     a::Float64
     σᵥ::Float64
     σₑ::Float64
 end
-prior(θ) = Normal(0, θ.σᵥ / √((1 - θ.a^2)))
-transition(θ, state, t) = Normal(θ.a * state, θ.σᵥ)  
-observation(θ, state, t) = Normal(state, θ.σₑ)   
 
-# Set up Linear Gaussian State Space Model
+prior(θ) = Normal(0, θ.σᵥ / √((1 - θ.a^2)));
+transition(θ, state, t) = Normal(θ.a * state, θ.σᵥ);  
+observation(θ, state, t) = Normal(state, θ.σₑ);   
+
 a = 0.9         # Persistence
 σᵥ = 0.3        # State std deviation
 σₑ = 0.5        # Observation std deviation
-T = 200         # Length of time series
+θ = LGSSParams(a, σᵥ, σₑ); # Set up parameter struct for PGAS
 
-# Algorithm settings
-Nₚ = 20      # Number of particles for PGAS
-Nₛ = 1000     # Number of samples from posterior
-
-θ = LGSSParams(a, σᵥ, σₑ) # Set up parameter struct for PGAS
-
-# Simulate data from LGSS model
+# ### Simulate data from LGSS model
+T = 200     # Length of time series
 x = zeros(T)
 y = zeros(T)
 x0 = rand(prior(θ))
@@ -54,13 +55,15 @@ plot(x; label="state, x", xlabel="t", lw = 2, legend = :topleft, color = colors[
 plot!(y; seriestype=:scatter, label="observed, y", xlabel="t", markersize = 2,
     color = colors[1], markerstrokecolor = :auto)
 
-# Run the algorithms
-println("Generating $Nₛ PGAS draws based on $Nₚ particles")
-@time PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation)
+# Algorithm settings
+Nₚ = 20      # Number of particles for PGAS
+Nₛ = 1000;   # Number of samples from posterior
+
+# ### Run PGAS
+PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation)
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3)
+PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
     
-## FFBS
 # Set up state-space model for FFBS
 Σₑ = [θ.σₑ^2]
 Σₙ = [θ.σᵥ^2]
@@ -69,30 +72,34 @@ PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3)
 A = θ.a
 C = 1
 B = 0
-U = zeros(T,1)
+U = zeros(T,1);
 
-println("Generating $Nₛ FFBS draws")
-@time FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
+# ### Run FFBS
+FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
 FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
-FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:]
+FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
 
+# ### Plot the posterior mean and 95% C.I. intervals from both algorithms
 plottrue = false
 p = length(prior(θ))
 plt = []
 for j in 1:p
-    # True state evolution
+
+    #True state evolution
     if plottrue
         plt_tmp = plot(x, c = :gray, lw = 1, label = "true state")
     else
         plt_tmp = plot()
     end
-    # PGAS
+
+    #PGAS
     plot!(PGASmean[:,j], lw = 1,
         c = colors[j], linestyle = :solid, label = "PGAS(N=$Nₚ)")
     plot!(PGASquantiles[:,j,1], fillrange = PGASquantiles[:,j,2],
         fillalpha = 0.2, fillcolor = colors[j], linecolor = colors[j],
         label = "", lw = 0) 
-    # FFBS
+
+    #FFBS
     plot!(FFBSmean[:,j]; color = :black, lw = 1, linestyle = :dash, label="FFBS")
     plot!(FFBSquantiles[:,j,1], lw = 1, c = :black, linestyle = :dash, label="")
     plot!(FFBSquantiles[:,j,2], lw = 1, c = :black, linestyle = :dash, label = "")
@@ -100,3 +107,5 @@ for j in 1:p
     push!(plt, plt_tmp)
 end
 plot(plt..., layout = (1,p), size = (800,300))
+
+# The posterior mean and 95% C.I. intervals from both algorithms are indeed almost identical.

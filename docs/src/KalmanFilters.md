@@ -1,5 +1,5 @@
 ```@docs
-kalmanfilter_update
-kalmanfilter_update_extended
-kalmanfilter_update_unscented
+SMCsamplers.kalmanfilter_update
+SMCsamplers.kalmanfilter_update_extended
+SMCsamplers.kalmanfilter_update_unscented
 ```
