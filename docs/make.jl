@@ -72,9 +72,9 @@ makedocs(;
     ],
 )
 
-#deploydocs(;
-#    repo="github.com/mattiasvillani/SMCsamplers.jl",
-#)
+deploydocs(;
+    repo="github.com/mattiasvillani/SMCsamplers.jl",
+)
 
 
 
