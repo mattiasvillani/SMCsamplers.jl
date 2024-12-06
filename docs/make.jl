@@ -13,11 +13,7 @@ above = joinpath(@__DIR__, "..")
 let script = "using Pkg; Pkg.activate(ARGS[1]); Pkg.instantiate(); Pkg.develop(path=\"$(above)\");"
     for example in examples
         if !success(`$(Base.julia_cmd()) -e $script $example`)
-            error(
-                "project environment of example ",
-                basename(example),
-                " could not be instantiated",
-            )
+            error("project environment of example ", basename(example), " could not be instantiated",)
         end
     end
 end
