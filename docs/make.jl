@@ -52,7 +52,9 @@ makedocs(;
         canonical="https://mattiasvillani.github.io/SMCsamplers.jl",
         edit_link="main",
         assets=String[],
+        size_threshold = 1000 * 2^10, # 1000 KiB determines the maximal html size in KiB
     ),
+    
 
     pages = [
         "Home" => "index.md",

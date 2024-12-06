@@ -4,12 +4,12 @@
 # ```math
 # \begin{align*}
 #   y_t &= z_t^\top\beta_t + \varepsilon_t,  \quad \varepsilon_t \sim N(0,\sigma_\varepsilon) \\
-#   \beta_t &= \beta_{t-1} + \nu_t, \quad \nu_t \sim N(0,Sigma_\eta) \\
+#   \beta_t &= \beta_{t-1} + \eta_t, \quad \eta_t \sim N(0,\Sigma_\eta) \\
 #   \beta_0 &\sim N(0, \Sigma_0)  
 # \end{align*}
 # ```
 
-# Preminiaries
+# Preliminaries
 
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random, PDMats, LinearAlgebra
 
@@ -22,7 +22,6 @@ Random.seed!(123);
 
 # ### Simulate time-varying regression data
 function SimTVReg(T, p, σₑ, Σₙ, Σ₀ = Σₙ)     
-
     Z = randn(T, p) # Matrix with covariates
     y = zeros(T)
     β = zeros(T, p)
@@ -47,7 +46,7 @@ y, Z, β = SimTVReg(T, p, σₑ, Σₙ);
 # Plot the parameter evolution
 plt = plot()
 for j in 1:p
-    plot!(β[:,j]; label= L"\beta_{%$j}", c = colors[j], xlab ="t")
+    plot!(β[:,j]; label= L"\beta_{%$(j-1)}", c = colors[j], xlab ="t")
 end
 plt
 
