@@ -4,8 +4,8 @@
 #
 # ```math
 # \begin{align*}
-#   y_t &= x_t + \epsilon_t, \epsilon_t \sim N(0,\sigma_e) \\
-#   x_t &= ax_{t-1} + \nu_t, \nu_t \sim N(0,\sigma_v) \\
+#   y_t &= x_t + \epsilon_t, \quad \epsilon_t \sim N(0,\sigma_e) \\
+#   x_t &= ax_{t-1} + \nu_t, \quad \nu_t \sim N(0,\sigma_v) \\
 #   x_0 &\sim N(0, \sigma_v/\sqrt{1-a^2})  
 # \end{align*}
 # ```
@@ -108,4 +108,4 @@ for j in 1:p
 end
 plot(plt..., layout = (1,p), size = (800,300))
 
-# The posterior mean and 95% C.I. intervals from both algorithms are indeed almost identical.
+# The posterior mean and 95% credible intervals from both algorithms are indeed almost identical.

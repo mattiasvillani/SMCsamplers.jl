@@ -4,8 +4,8 @@
 #
 # ```math
 # \begin{align*}
-#   y_t &= \exp(x_t/2)\epsilon_t, \epsilon_t \sim N(0,1) \\
-#   x_t &= ax_{t-1} + \nu_t, \nu_t \sim N(0,\sigma_v) \\
+#   y_t &= \exp(x_t/2)\epsilon_t,  \quad \epsilon_t \sim N(0,1) \\
+#   x_t &= ax_{t-1} + \nu_t, \quad \nu_t \sim N(0,\sigma_v) \\
 #   x_0 &\sim N(0, \sigma_0)  
 # \end{align*}
 # ```
@@ -61,7 +61,7 @@ PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation)
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
 PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
     
-# ### Plot the posterior mean and 95% C.I. intervals from both algorithms
+# ### Plot the posterior mean and 95% credible intervals from both algorithms
 plt = plot(x, c = colors[3], lw = 1, label = "true state")
 plot!(PGASmean[:,1], lw = 1, c = colors[1], linestyle = :solid, label = "PGAS(N=$Nₚ)")
 plot!(PGASquantiles[:,1,1], fillrange = PGASquantiles[:,1,2],
