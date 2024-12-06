@@ -59,10 +59,10 @@ makedocs(;
     ),
 
     pages = [
-        "Home" => "home.md",
+        "Home" => "index.md",
         "Particle Gibbs" => "ParticleGibbs.md",
         "FFBS" => "FFBS.md",
-        "Index" => "index.md",
+        "Index" => "functionindex.md",
         "Examples" => [
             map(
                 (x) -> joinpath("examples", x),
