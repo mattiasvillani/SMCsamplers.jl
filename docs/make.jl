@@ -71,8 +71,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/mattiasvillani/SMCsamplers.jl",
+    repo="github.com/mattiasvillani/SMCsamplers.jl.git",
 )
-
-
 

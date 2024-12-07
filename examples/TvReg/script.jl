@@ -3,9 +3,9 @@
 # In this example we explore the joint posterior of the state $\beta_t$ in a time-varying regression model with known static parameters: 
 # ```math
 # \begin{align*}
-#   y_t &= z_t^\top\beta_t + \varepsilon_t,  \quad \varepsilon_t \sim N(0,\sigma_\varepsilon) \\
-#   \beta_t &= \beta_{t-1} + \eta_t, \quad \eta_t \sim N(0,\Sigma_\eta) \\
-#   \beta_0 &\sim N(0, \Sigma_0)  
+#   y_t &= z_t^\top\boldsymbol{\beta}_t + \varepsilon_t,  \quad \varepsilon_t \sim N(0,\sigma_\varepsilon) \\
+#    \boldsymbol{\beta}_t &=  \boldsymbol{\beta}_{t-1} + \boldsymbol{\eta}_t, \quad \boldsymbol{\eta}_t \sim N(0,\boldsymbol{\Sigma}_\eta) \\
+#   \boldsymbol{\beta}_0 &\sim N(0, \boldsymbol{\Sigma}_0)  
 # \end{align*}
 # ```
 

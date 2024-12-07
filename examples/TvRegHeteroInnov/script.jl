@@ -9,7 +9,7 @@
 #   \boldsymbol{\beta}_0 &\sim N(\boldsymbol{0}, \boldsymbol{\Sigma_0})  
 # \end{align*}
 # ```
-# We will take the $Q_t = \exp(h_t)$ sequence as known in this example.
+# We will take the $\boldsymbol{Q}_t = \exp(\boldsymbol{h}_t)$ sequence as known in this example.
 
 # The example shows that PGAS can work poorly when a vague prior is used as the proposal distribution for the state at the first time step. This is the default setting in this package, but should not always be used. Later in the example we use a better proposal and show that PGAS works well.
 
