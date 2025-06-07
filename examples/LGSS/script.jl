@@ -114,22 +114,3 @@ for j in 1:p
 end
 plot(plt..., layout = (1,p), size = (800,300))
 
-
-
-
-using PkgTemplates
-myTemplate = Template(; 
-    user="mattiasvillani",
-    authors=["Mattias Villani","Yijie Niu","Ganna Fagerberg"],
-    julia=v"1.11",
-    plugins=[
-        License(; name="MIT"),
-        Git(; manifest=true, ssh=true),
-        GitHubActions(; x86=true),
-        Codecov(),
-        Documenter{GitHubActions}(),
-        Develop(),
-    ],
-)
-generate("PackageName", myTemplate)
-
