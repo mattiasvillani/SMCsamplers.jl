@@ -14,8 +14,14 @@
 # 1. Particle Gibbs with Ancestor Sampling (PGAS)
 # 2. Forward Filtering Backward Sampling (FFBS)
 
-# First some preliminaries:
+# First some preliminaries.
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random
+
+colors = [
+    "#6C8EBF", "#c0a34d", "#780000", "#007878",     
+    "#b5c6df","#eadaaa","#AE6666", "#4CA0A0","#bf9d6c", "#3A6B35", 
+    "#9d6a6d","#d9c6c7", "#98bbb9", "#bf8d6c", 
+    "#CBD18F"]
 
 gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
@@ -108,4 +114,22 @@ for j in 1:p
 end
 plot(plt..., layout = (1,p), size = (800,300))
 
-# The posterior mean and 95% credible intervals from both algorithms are indeed almost identical.
+
+
+
+using PkgTemplates
+myTemplate = Template(; 
+    user="mattiasvillani",
+    authors=["Mattias Villani","Yijie Niu","Ganna Fagerberg"],
+    julia=v"1.11",
+    plugins=[
+        License(; name="MIT"),
+        Git(; manifest=true, ssh=true),
+        GitHubActions(; x86=true),
+        Codecov(),
+        Documenter{GitHubActions}(),
+        Develop(),
+    ],
+)
+generate("PackageName", myTemplate)
+

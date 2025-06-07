@@ -15,6 +15,12 @@
 
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random, PDMats, LinearAlgebra
 
+colors = [
+    "#6C8EBF", "#c0a34d", "#780000", "#007878",     
+    "#b5c6df","#eadaaa","#AE6666", "#4CA0A0","#bf9d6c", "#3A6B35", 
+    "#9d6a6d","#d9c6c7", "#98bbb9", "#bf8d6c", 
+    "#CBD18F"]
+
 gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
@@ -81,28 +87,13 @@ observation(θ, state, t) = Normal(θ.Z[t,:] ⋅ state, θ.σₑ)
 prior(θ) = MvNormal(θ.μ₀, θ.Σ₀)
 θ = ParametersTvRegHetero(σₑ, Q, μ₀, Σ₀, y, Z);  
 
-# ### FFBS
-Σₑ = σₑ^2
-A = collect(I(p))
-C = zeros(1,p,T)
-for t in 1:T
-    C[:,:,t] = Z[t,:]
-end
-B = 0.0
-U = zeros(T,1)
-Σₙ = Q 
-
-Nₛ = 1000     # Number of samples from posterior
-FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
-FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
-FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
-
 # ### PGAS 
 #First we use the prior as the proposal distribution for β₁ (which is the default)
 Nₚ = 20       # Number of particles
-PGASdraws_prior = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation); 
+Nₛ = 1000     # Number of samples from posterior
+PGASdraws_prior = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation) 
 PGASmean_prior = mean(PGASdraws_prior, dims = 3)[:,:,1]
-PGASquantiles_prior = myquantile(PGASdraws_prior, [0.025, 0.975], dims = 3)
+PGASquantiles_prior = myquantile(PGASdraws_prior, [0.025, 0.975], dims = 3);
 
 #Plot update rates
 update_rate = sum(abs.(diff(PGASdraws_prior[:,1,:]; dims = 2)) .> 0; dims=2) / Nₛ
@@ -112,7 +103,24 @@ hline!([1 - 1 / Nₚ]; label="Optimal rate for N: $(Nₚ) particles", c = colors
     legend = :bottomright, lw = 1, linestyle = :dash)
 plt1
 # Note poor update rate for the early time steps. The prior is rather vague and is therefore not a good proposal for the state β₁.
-# The inference from PGAS is poor and does not agree with the one from FFBS
+# Let us run FFBS and the compare with the PGAS results
+
+# ### FFBS
+Σₑ = σₑ^2
+A = collect(I(p))
+C = zeros(1,p,T)
+for t in 1:T
+    C[:,:,t] = Z[t,:]
+end
+B = 0.0
+U = zeros(T,1)
+Σₙ = Q; 
+
+FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
+FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
+FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
+
+# The posterior from PGAS is poor and does not agree with the one from FFBS for the earlier time periods:
 
 plottrue = true
 p = length(prior(θ))

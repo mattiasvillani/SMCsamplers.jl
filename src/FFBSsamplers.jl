@@ -367,10 +367,10 @@ function FFBS_unscented(U, Y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀; α = 1
     staticΣₙ = (ndims(Σₙ) == 3  || eltype(Σₙ) <: PDMat) ? false : true
 
     # Set up the weights for the unscented Kalman filter
-    λ = α^2*(n + κ) - n
+    λ = α^2*(n + κ) - n # λ = 3-n # me = 1
     ωₘ = [λ/(n + λ); ones(2*n)/(2*(n + λ))]
     ωₛ = [λ/(n + λ) + (1 - α^2 + β); ωₘ[2:end]]
-    γ = sqrt(n + λ)
+    γ = sqrt(n + λ) # Ganna: sqrt(3) # sqrt(n + 1)
 
     # Run Kalman filter and collect matrices
     μ_filter = zeros(T, n)      # Storage of μₜₜ
