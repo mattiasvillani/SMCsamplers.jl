@@ -1,5 +1,8 @@
 ```@docs
 SMCsamplers.kalmanfilter_update
 SMCsamplers.kalmanfilter_update_extended
+SMCsamplers.kalmanfilter_update_extended_iter
+SMCsamplers.kalmanfilter_update_extended_iter_line
 SMCsamplers.kalmanfilter_update_unscented
+SMCsamplers.laplace_kalmanfilter_update
 ```

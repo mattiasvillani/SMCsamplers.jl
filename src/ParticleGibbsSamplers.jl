@@ -111,7 +111,6 @@ function PGASupdate(y, p, N, θ, prior, transition, observation,
         X[:,:, t] = X[ind,:,t]
         ind = a[ind,t]
     end
-
     # Finally, sample a trajectory and return it
     J = findfirst(rand(1) .<= cumsum(w[:,T]))   
     return X[J,:,:] # Maybe also return the particle system: X, w

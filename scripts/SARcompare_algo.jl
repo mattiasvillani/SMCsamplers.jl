@@ -1,0 +1,271 @@
+# # Time-varying seasonal AR model
+
+# In this example we analyze the seasonal AR(p,P) model with p regular lags and P seasonal lags at seasonality s
+#
+# ```math
+# \begin{equation*}
+#   \phi_t(L)\Phi_t(L^s)y_t = \epsilon_t , \quad \epsilon_t \sim N(0,\sigma_\varepsilon^2) 
+# \end{equation*}
+# ```
+# where $\phi_t(L) = 1 - \phi_{1t} L - \phi_{2t} L^2 - \ldots - \phi_{pt} L^p$ is the regular AR polynomial and $\Phi_t(L^s) = 1 - \Phi_{1t} L^s - \Phi_2 L^{2s} - \ldots - \Phi_{Pt} L^{Ps}$ is the seasonal AR polynomial.
+#
+# Define the state vector as $\boldsymbol{x}_t = (\phi_{1t},\ldots,\phi_{pt},\Phi_{1t},\ldots,\Phi_{Pt})^\top$. By multiplying out the polynomials, the seasonal AR model can be written as a nonlinear regression with Gaussian noise:
+# ```math
+#   y_t = \boldsymbol{z}_t^\top \boldsymbol{h}(\boldsymbol{x}_t) + \epsilon_t, \quad \epsilon_t \sim N(0,\sigma_\varepsilon^2)
+# ```
+#
+# For example, when $p=1$, $P=1$, we have $\boldsymbol{z}_t = (1, y_{t-1}, y_{t-s}, y_{t-s-1})^\top$, $\boldsymbol{x}_t = (\phi_{1t}, \Phi_{1t})^\top$ and $\boldsymbol{h}(\boldsymbol{x}_t) = (\phi_{1t}, \Phi_{1t}, \phi_{1t}\Phi_{1t})^\top$.
+
+# Assuming a simple Gaussian random walk evolution for the parameters, the time-varying SAR model can be written as a state space model:
+# ```math
+# \begin{align*}
+#   y_t &= \boldsymbol{z}_t^\top \boldsymbol{h}(\boldsymbol{x}_t) + \epsilon_t, \quad \epsilon_t \sim N(0,\sigma_\varepsilon^2) \\
+#   \boldsymbol{x}_t &= \boldsymbol{x}_{t-1} + \boldsymbol{\nu}_t, \quad \boldsymbol{\nu}_t \sim N(0,\sigma^2_v \boldsymbol{I}) \\
+#   \boldsymbol{x}_0 &\sim N(0, \sigma^2_0 \boldsymbol{I})  
+# \end{align*}
+# ```
+
+# The seasonal AR model is non-linear in the measurement equation. We may additionally restrict the parameters of the model so the the process is stable at all time periods, for example by using the transformations 
+# $$\phi_t = \frac{\tilde\phi_t}{\sqrt{1 + \tilde\phi_t^2}}$$ 
+# and
+# $$\Phi_t = \frac{\tilde\Phi_t}{\sqrt{1 + \tilde\Phi_t^2}}$$ 
+# to ensure that $|\phi_{t}| < 1$ and $|\Phi_{t}| < 1$.
+# This restriction bring yet another nonlinearity into the measurement model.
+
+# ### First some preliminaries:
+using SMCsamplers, Plots, Distributions, LaTeXStrings, Random, ForwardDiff, PDMats
+using LinearAlgebra, Measures
+
+colors = [
+    "#6C8EBF", "#c0a34d", "#780000", "#007878",     
+    "#b5c6df","#eadaaa","#AE6666", "#4CA0A0","#bf9d6c", "#3A6B35", 
+    "#9d6a6d","#d9c6c7", "#98bbb9", "#bf8d6c", 
+    "#CBD18F"]
+
+gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
+    xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
+    titlefontsize = 10, markerstrokecolor = :auto)
+
+myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
+Random.seed!(123);
+
+sim_stable = true
+if sim_stable
+    restr(x) = x/sqrt(1 + x^2) 
+    invrestr(y) = y/sqrt(1 - y^2)
+else
+    restr(x) = x
+    invrestr(y) = y
+end
+
+# ### Simulate data from a SAR(1,1) model with s = 12 
+s = 12
+p = 1
+P = 1
+nState = p + P              
+T = 500
+time = 1:T
+s = 12
+T₊ = 2*(s+1)+T # include 2*(s+1) presample values
+evol_unrestr = true
+if sim_stable
+    ϕ(t) = restr(3*sin(2π*t/T)) # Time-varying AR coefficient
+    Φ(t) = restr(0.577)
+else
+    ϕ(t) = 0.95*sin(2π*t/T) # Time-varying AR coefficient
+    #Φ(t) = (t <= T/2 + 2*(s+1)) ? -0.5 : 0.95
+    Φ(t) = 0.5 #; 0.95*(-1 + 8*(t/T₊) -8*(t/T₊)^2)
+end
+σₑ = 0.2
+y = zeros(T₊)
+paramEvol = zeros(T₊, 2)
+for t = (s+2):(T₊)
+    y[t] = ϕ(t)*y[t-1] + Φ(t)*y[t-s] - ϕ(t)*Φ(t)*y[t-s-1] + σₑ*randn() 
+    paramEvol[t,:] .= ϕ(t), Φ(t)
+end
+y = y[(s+2):end] # Remove presample values
+paramEvol = paramEvol[(s+2):end,:];
+
+# ### Set up the SAR model as a nonlinear regression
+lag1 = [NaN;y[1:end-1]] # Lag 1
+lagS = [NaN*ones(s);y[1:end-s]] # Lag s
+lagSplus1 = [NaN*ones(s+1);y[1:(end-s-1)]] # Lag s+1
+
+Z = [lag1 lagS lagSplus1]
+Z = Z[s+2:end, :]           # Remove first s rows with NaNs
+y = y[s+2:end]              # Remove lost observations
+paramEvol = paramEvol[s+2:end,:];
+
+ 
+# ### Plot the data and the time-varying parameters
+p1 = plot(time, paramEvol[:,1], label = L"\phi_t", lw = 2, c = colors[2], 
+    title ="parameter evolution", ylims = (-1,1), legend = :bottomleft)
+plot!(time, paramEvol[:,2], label = L"\Phi_t", lw = 2, c = colors[3])
+p2 = plot(time, y, label = "data", lw = 2, c = colors[1], xlabel = "time", ylabel = "", 
+    legend = false, title = "time series")
+plot(p1, p2, layout = (1,2), size = (800, 300), bottommargin = 5mm)
+
+
+stable = true
+if stable
+    restr(x) = x/sqrt(1 + x^2) 
+    invrestr(y) = y/sqrt(1 - y^2)
+else
+    restr(x) = x
+    invrestr(y) = y
+end
+
+# ### Set up SAR model structure for PGAS and set static parameter values
+mutable struct SARParams 
+    σₑ::Float64
+    σᵥ::Float64
+    σ₀::Float64
+    Z::Matrix{Float64}
+end
+
+prior(θ) = MvNormal(zeros(p+P), θ.σ₀)
+transition(θ, state, t) = MvNormal(state, θ.σᵥ)  
+function observation(θ, state, t)
+    state = restr.(state) # Apply the restriction to the state
+    return Normal(θ.Z[t,:]' ⋅ [state[1];state[2];-state[1]*state[2]], θ.σₑ)
+end
+
+
+# Set up static parameter values
+σₑ = σₑ                 # Noise std deviation from static model
+σᵥ = 0.1                # State std deviation
+σ₀ = 1                  # Initial state std deviation
+if stable
+    scaler = 2*std(invrestr.(rand(Truncated(Normal(0, σ₀),-1,1), 1000)))
+    scaler  = 1
+    σ₀ = scaler*σ₀ 
+    σᵥ = 1*σᵥ
+end
+θ = SARParams(σₑ, σᵥ, σ₀, Z)
+
+nSim = 1000;            # Number of samples from posterior
+
+# ### PGAS sampling
+nParticles = 100         # Number of particles for PGAS
+PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, 
+    observation);
+PGASdraws = restr.(PGASdraws) # Apply the restriction to the draws
+PGASmedian = median(PGASdraws, dims = 3)[:,:,1];
+PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+    
+# ### Plot the posterior median and 95% credible intervals from PGAS
+plt = [];
+titles = [L"\phi_{t}",L"\Phi_{t}"];
+legendPos = [:top, :bottom];
+for j = 1:nState
+    plt_tmp = plot(time, paramEvol[:,j], lw = 2, c = :black, linestyle = :solid, 
+        label = "true", title = titles[j], legend = legendPos[j])
+    plot!(time, PGASmedian[:,j], fillrange = PGASquantiles[:,j,1],
+        fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0) 
+    plot!(time, PGASmedian[:,j], fillrange = PGASquantiles[:,j,2],
+        fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0) 
+    plot!(time, PGASmedian[:,j], lw = 1, c = :gray, linestyle = :solid, 
+        label = "PGAS(N=$nParticles)")
+    push!(plt, plt_tmp)
+end
+plot(plt..., layout = (1,2), size = (800, 300), ylims = (-1.7,1.7), xlabel = "time", 
+    bottommargin = 5mm)
+
+# ### FFBS posterior sampling using the Extended Kalman filter (EKF)
+A = PDMat(I(nState))
+B = zeros(nState)
+U = zeros(T,1)
+Y = y
+Σₑ = θ.σₑ^2
+Σₙ = θ.σᵥ^2 * I(nState)
+μ₀ = zeros(nState)
+Σ₀ = θ.σ₀^2 * I(nState)
+function C(state, z)
+    state = restr.(state)
+    return z ⋅ [state[1];state[2];-state[1]*state[2]]
+end
+Cargs = [Z[t,:] for t in 1:T];
+∂C(state, z) = ForwardDiff.gradient(state -> C(state, z), state)';
+
+EKFdraws, μ_filterEKF, Σ_filterEKF  = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim; filter_output = true);
+EKFdraws = restr.(EKFdraws) # Apply the restriction to the draws
+EKFmedian = median(EKFdraws, dims = 3)[:,:,1];
+EKFquantiles = myquantile(EKFdraws, [0.025, 0.975], dims = 3);
+for j = 1:nState
+    plot!(plt[j], [0;time], EKFmedian[:,j], lw = 1, c = colors[3], linestyle = :solid, 
+        label = "EKF(1)")
+    plot!(plt[j], [0;time], EKFquantiles[:,j,1], lw = 1, c = colors[3], 
+        linestyle = :solid, label = nothing)
+    plot!(plt[j], [0;time], EKFquantiles[:,j,2], lw = 1, c = colors[3], 
+        linestyle = :solid, label = nothing)
+end
+plot(plt..., layout = (1,2), size = (800, 300), ylims = (-1.7,1.7), xlabel = "time", 
+    bottommargin = 5mm)
+
+
+# ### FFBS posterior sampling using the Unscented Kalman filter (UKF)
+α = 1; β = 0; κ = 0;
+UKFdraws = FFBS_unscented(U, Y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim; 
+    α = α, β = β, κ = κ);
+UKFdraws = restr.(UKFdraws) # Apply the restriction to the draws
+UKFmedian = median(UKFdraws, dims = 3)[:,:,1]
+UKFquantiles = myquantile(UKFdraws, [0.025, 0.975], dims = 3);
+for j = 1:nState
+    plot!(plt[j], [0;time], UKFmedian[:,j], lw = 1, c = colors[2], linestyle = :solid, 
+        label = "UKF(1)")
+    plot!(plt[j], [0;time], UKFquantiles[:,j,1], lw = 1, c = colors[2], 
+        linestyle = :solid, label = nothing)
+    plot!(plt[j], [0;time], UKFquantiles[:,j,2], lw = 1, c = colors[2], 
+        linestyle = :solid, label = nothing)
+end
+plot(plt..., layout = (1,2), size = (800, 350),  ylims = (-1.7,1.7), xlabel = "time", 
+    bottommargin = 5mm)
+
+
+# ### FFBS posterior sampling using the Iterated Extended Kalman filter (IEKF)
+plotIEKF = true
+if plotIEKF
+    maxIter = 10
+    tol = 10^-4 # tolerance for convergence
+    IEKFdraws, μ_filterIEKF, Σ_filterIEKF = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, 
+        nSim, maxIter, tol; filter_output = true);
+    IEKFdraws = restr.(IEKFdraws) # Apply the restriction to the draws
+    IEKFmedian = median(IEKFdraws, dims = 3)[:,:,1];
+    IEKFquantiles = myquantile(IEKFdraws, [0.025, 0.975], dims = 3);
+    for j = 1:nState
+        plot!(plt[j], [0;time], IEKFmedian[:,j], lw = 1, c = colors[4], linestyle = :solid, 
+            label = "IEKF($maxIter)")
+        plot!(plt[j], [0;time], IEKFquantiles[:,j,1], lw = 1, c = colors[4], 
+            linestyle = :solid, label = nothing)
+        plot!(plt[j], [0;time], IEKFquantiles[:,j,2], lw = 1, c = colors[4], 
+            linestyle = :solid, label = nothing)
+    end
+    plot(plt..., layout = (1,2), size = (800, 300), ylims = (-1.7,1.7), xlabel = "time", 
+        bottommargin = 5mm)
+end
+
+# ### FFBS posterior sampling using Iterated Extended Kalman filter + line search (IEKF-L)
+plotIEKFL = true
+if plotIEKFL
+    linesearch = true
+    maxIter = 10
+    tol = 10^-4 # tolerance for convergence
+    IEKFLdraws, μ_filterIEKFL, Σ_filterIEKFL = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, 
+        μ₀, Σ₀, nSim, maxIter, tol, linesearch; filter_output = true);
+    IEKFLdraws = restr.(IEKFLdraws) # Apply the restriction to the draws
+    IEKFLmedian = median(IEKFLdraws, dims = 3)[:,:,1];
+    IEKFLquantiles = myquantile(IEKFLdraws, [0.025, 0.975], dims = 3);
+    for j = 1:nState
+        plot!(plt[j], [0;time], IEKFLmedian[:,j], lw = 1, c = colors[5], 
+            linestyle = :solid, label = "IEKF-L($maxIter)")
+        plot!(plt[j], [0;time], IEKFLquantiles[:,j,1], lw = 1, c = colors[5], 
+            linestyle = :solid, label = nothing)
+        plot!(plt[j], [0;time], IEKFLquantiles[:,j,2], lw = 1, c = colors[5], 
+            linestyle = :solid, label = nothing)
+    end
+    plot(plt..., layout = (1,2), size = (800, 300), ylims = (-1.7,1.7), xlabel = "time", 
+        bottommargin = 5mm)
+end
+
+
+savefig("SAR_095_05_nostable.pdf")
