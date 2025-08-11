@@ -14,10 +14,14 @@ Single update step of the PGAS algorithm with `N` particles to simulate from the
 Xref is a p×T matrix with conditioning particle path - if nothing, unconditional PF is run
 """ 
 function PGASupdate(y, p, N, θ, prior, transition, observation,  
-    initproposal, resampler, Xref = nothing) 
+    initproposal, resampler, Xref = nothing; sample_t0 = true) 
 
     conditioning = !isnothing(Xref)
     T = length(y)
+    if sample_t0
+        T = T + 1
+        #y = vcat(NaN*ones(1,size(y,2)), y) # no data at t=0.
+    end
     X = zeros(N, p, T)      # Particles 
     a = zeros(Int, N, T)    # Ancestor indices
     w = zeros(N, T)         # Weights
@@ -25,8 +29,7 @@ function PGASupdate(y, p, N, θ, prior, transition, observation,
     logweights = zeros(N)
     ESSthreshold = 0.5*N
     ResampleCount = 0
-    for t = 1:T
-
+    for t  = 1:T
         if t == 1
             for n in 1:N
                 X[n,:,t] .= rand(initproposal)
@@ -38,18 +41,29 @@ function PGASupdate(y, p, N, θ, prior, transition, observation,
             # Compute importance weights
             for n in 1:N
                 if p == 1
-                    logweights[n] = logpdf(observation(θ, X[n,1,t], t), y[t]) + 
-                        logpdf(prior, X[n,1,t]) - logpdf(initproposal, X[n,1,t])
+                    if sample_t0
+                        logweights[n] = logpdf(prior, X[n,1,t]) - 
+                            logpdf(initproposal, X[n,1,t])
+                    else
+                        logweights[n] = logpdf(observation(θ, X[n,1,t], t), y[t]) + 
+                            logpdf(prior, X[n,1,t]) - logpdf(initproposal, X[n,1,t])
+                    end
+                    
                 else
-                    logweights[n] = logpdf(observation(θ, X[n,:,t], t), y[t])  + 
-                        logpdf(prior, X[n,:,t]) - logpdf(initproposal, X[n,:,t])
+                    if sample_t0
+                        logweights[n] = logpdf(prior, X[n,:,t]) - 
+                            logpdf(initproposal, X[n,:,t])
+                    else
+                        logweights[n] = logpdf(observation(θ, X[n,:,t], t), y[t])  + 
+                            logpdf(prior, X[n,:,t]) - logpdf(initproposal, X[n,:,t])
+                    end
                 end
             end
 
             weights = exp.(logweights .- maximum(logweights))
             w[:,t] = weights/sum(weights) # Save the normalized weights
             ind = 1:N
-        else # t > 1
+        else # t ≥ 2
             resample = (ESS(w[:,t-1]) <= ESSthreshold)
             if resample
                 ResampleCount += 1
@@ -60,9 +74,9 @@ function PGASupdate(y, p, N, θ, prior, transition, observation,
 
             for n in 1:N #FIXME: Shouldn't need these if-statements. Annoying.
                 if p == 1
-                    X[n,:,t] .= rand(transition(θ, X[ind[n],1,t-1], t))
+                    X[n,:,t] .= rand(transition(θ, X[ind[n],1,t-1], t-sample_t0))
                 else
-                    X[n,:,t] .= rand(transition(θ, X[ind[n],:,t-1], t))
+                    X[n,:,t] .= rand(transition(θ, X[ind[n],:,t-1], t-sample_t0))
                 end
             end 
              
@@ -73,9 +87,9 @@ function PGASupdate(y, p, N, θ, prior, transition, observation,
                 # Ancestor sampling
                 for n = 1:N 
                     if p == 1
-                        γ[n] = logpdf(transition(θ, X[n,1,t-1], t), Xref[1,t])
+                        γ[n] = logpdf(transition(θ, X[n,1,t-1], t-sample_t0), Xref[1,t])
                     else
-                        γ[n] = logpdf(transition(θ, X[n,:,t-1], t), Xref[:,t])
+                        γ[n] = logpdf(transition(θ, X[n,:,t-1], t-sample_t0), Xref[:,t])
                     end
                 end
                 w_as = w[:,t-1] .* exp.(γ .- maximum(γ))
@@ -90,9 +104,11 @@ function PGASupdate(y, p, N, θ, prior, transition, observation,
             # Compute importance weights
             for n in 1:N
                 if p == 1
-                    logweights[n] = logpdf(observation(θ, X[n,1,t], t), y[t]) 
-                else
-                    logweights[n] = logpdf(observation(θ, X[n,:,t], t), y[t]) 
+                    logweights[n] = logpdf(observation(θ, X[n,1,t], t-sample_t0), 
+                        y[t-sample_t0]) 
+                else 
+                    logweights[n] = logpdf(observation(θ, X[n,:,t], t-sample_t0), 
+                        y[t-sample_t0]) 
                 end
             end
             
@@ -131,19 +147,20 @@ Uses the PGAS algorithm with `N` particles to simulate `nDraws` from the joint s
 
 θ is a struct with all the parameters in the model needed to evaluate the prior, transition and observation densities.
 
-`initproposal` is the proposal distribution for x₁ and `resampler` is the resampling function which defaults to systematic resampling.
+`initproposal` is the proposal distribution for x₁ and `resampler` is the resampling function which defaults to systematic resampling. If sample_t0 is true, then sample also a t=0.
 """ 
 function PGASsampler(y, θ, nDraws, N, prior, transition, observation, 
-    initproposal = prior, resampler = systematic)
+    initproposal = prior, resampler = systematic; sample_t0 = true)
 
     initproposal = initproposal(θ)
     prior = prior(θ)
     p = length(initproposal)
     T = length(y)
-    Xdraws = zeros(p, T, nDraws)
+    Xdraws = zeros(p, sample_t0 + T, nDraws)
 
     # Initialize the state by running a PF
-    X = PGASupdate(y, p, N, θ, prior, transition, observation, initproposal, resampler)
+    X = PGASupdate(y, p, N, θ, prior, transition, observation, initproposal, resampler; 
+        sample_t0 = sample_t0)
         
     Xdraws[:,:,1] = X
 
@@ -151,7 +168,7 @@ function PGASsampler(y, θ, nDraws, N, prior, transition, observation,
     for k = 2:nDraws 
         # Sample the states using PGAS
         X = PGASupdate(y, p, N, θ, prior, transition, observation, initproposal,
-            resampler, Xdraws[:,:,k-1])    
+            resampler, Xdraws[:,:,k-1]; sample_t0 = sample_t0)    
         Xdraws[:,:,k] = X      
     end
 

@@ -46,7 +46,7 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
+quantile_multidim(A, p; dims, kwargs...) = mapslices(x -> quantile_multidim(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 sim_stable = true
@@ -151,7 +151,7 @@ PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition,
     observation);
 PGASdraws = restr.(PGASdraws) # Apply the restriction to the draws
 PGASmedian = median(PGASdraws, dims = 3)[:,:,1];
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
     
 # ### Plot the posterior median and 95% credible intervals from PGAS
 plt = [];
@@ -190,7 +190,7 @@ Cargs = [Z[t,:] for t in 1:T];
 EKFdraws, μ_filterEKF, Σ_filterEKF  = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim; filter_output = true);
 EKFdraws = restr.(EKFdraws) # Apply the restriction to the draws
 EKFmedian = median(EKFdraws, dims = 3)[:,:,1];
-EKFquantiles = myquantile(EKFdraws, [0.025, 0.975], dims = 3);
+EKFquantiles = quantile_multidim(EKFdraws, [0.025, 0.975], dims = 3);
 for j = 1:nState
     plot!(plt[j], [0;time], EKFmedian[:,j], lw = 1, c = colors[3], linestyle = :solid, 
         label = "EKF(1)")
@@ -209,7 +209,7 @@ UKFdraws = FFBS_unscented(U, Y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim
     α = α, β = β, κ = κ);
 UKFdraws = restr.(UKFdraws) # Apply the restriction to the draws
 UKFmedian = median(UKFdraws, dims = 3)[:,:,1]
-UKFquantiles = myquantile(UKFdraws, [0.025, 0.975], dims = 3);
+UKFquantiles = quantile_multidim(UKFdraws, [0.025, 0.975], dims = 3);
 for j = 1:nState
     plot!(plt[j], [0;time], UKFmedian[:,j], lw = 1, c = colors[2], linestyle = :solid, 
         label = "UKF(1)")
@@ -231,7 +231,7 @@ if plotIEKF
         nSim, maxIter, tol; filter_output = true);
     IEKFdraws = restr.(IEKFdraws) # Apply the restriction to the draws
     IEKFmedian = median(IEKFdraws, dims = 3)[:,:,1];
-    IEKFquantiles = myquantile(IEKFdraws, [0.025, 0.975], dims = 3);
+    IEKFquantiles = quantile_multidim(IEKFdraws, [0.025, 0.975], dims = 3);
     for j = 1:nState
         plot!(plt[j], [0;time], IEKFmedian[:,j], lw = 1, c = colors[4], linestyle = :solid, 
             label = "IEKF($maxIter)")
@@ -254,7 +254,7 @@ if plotIEKFL
         μ₀, Σ₀, nSim, maxIter, tol, linesearch; filter_output = true);
     IEKFLdraws = restr.(IEKFLdraws) # Apply the restriction to the draws
     IEKFLmedian = median(IEKFLdraws, dims = 3)[:,:,1];
-    IEKFLquantiles = myquantile(IEKFLdraws, [0.025, 0.975], dims = 3);
+    IEKFLquantiles = quantile_multidim(IEKFLdraws, [0.025, 0.975], dims = 3);
     for j = 1:nState
         plot!(plt[j], [0;time], IEKFLmedian[:,j], lw = 1, c = colors[5], 
             linestyle = :solid, label = "IEKF-L($maxIter)")

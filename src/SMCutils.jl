@@ -1,3 +1,5 @@
+quantile_multidim(A, p; dims = 1, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
+
 # Effective sample size
 function ESS(w)
     return 1/sum(w.^2)

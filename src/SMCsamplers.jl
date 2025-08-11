@@ -17,7 +17,7 @@ include("ParticleGibbsSamplers.jl")
 export PGASupdate, PGASsampler
 
 include("SMCutils.jl")
-export systematic, multinomial, ESS # TODO: add stratified resampling
+export quantile_multidim, systematic, multinomial, ESS # TODO: add stratified resampling
 
 end
   

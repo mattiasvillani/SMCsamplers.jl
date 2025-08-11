@@ -24,7 +24,6 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 # ### Set up Poisson model
@@ -79,7 +78,7 @@ function plotEvolDistributions!(plt, postDraws, quantiles, trueEvol = nothing,
         label = nothing, shaded = false; plotSettings...)
 
     T, nState, nSim = size(postDraws)
-    postquantiles = myquantile(postDraws, quantiles, dims = 3);
+    postquantiles = quantile_multidim(postDraws, quantiles, dims = 3);
     
     if !isnothing(trueEvol)
         plot!(plt, 1:T, trueEvol, lw = 1, c = :black, label = "true"; plotSettings...)
@@ -122,17 +121,20 @@ plt
 # ### PGAS sampling
 nSim = 1000;             #  Number of samples from posterior
 nParticles = 100         # Number of particles for PGAS
-PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, observation);
+sample_t0 = true         # Sample state at t=0 ?
+PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, observation; 
+    sample_t0 = sample_t0);
 
 # Plot the true evolution and the posterior distributions from PGAS
 quantiles = [0.025, 0.5, 0.975]
 pltLogIntensity = plot(; title = "Log Intensity "*L" \log\lambda_t = x_t")
-plotEvolDistributions!(pltLogIntensity, PGASdraws, quantiles, x, 
+plotEvolDistributions!(pltLogIntensity, PGASdraws, quantiles, [NaN*ones(sample_t0);x], 
     "PGAS(N=$nParticles)", true; color = colors[3], lw = 1, legend = :topright)
 
 pltIntensity = plot(; title = "Intensity "*L" \lambda_t = \exp(x_t)")
-plotEvolDistributions!(pltIntensity, exp.(PGASdraws), quantiles, exp.(x), 
-    "PGAS(N=$nParticles)", true; color = colors[3], lw = 1, legend = :topright)
+plotEvolDistributions!(pltIntensity, exp.(PGASdraws), quantiles, 
+    exp.([NaN*ones(sample_t0);x]), "PGAS(N=$nParticles)", true; color = colors[3], 
+    lw = 1, legend = :topright)
 
 plot(pltLogIntensity, pltIntensity, layout = (1,2), size = (800, 300), bottommargin = 5mm)
 
@@ -147,7 +149,8 @@ B = θ.μ*(1-θ.a) # The transition model is x_t = μ + a (x_{t-1} - μ) + η_t,
 U = ones(T,1);
 
 # Simulate from the Laplace approximation of the posterior distribution 
-LaplaceDraws = FFBS_laplace(U, y, A, B, Σₙ, μ₀, Σ₀, observation, θ, nSim);
+LaplaceDraws = FFBS_laplace(U, y, A, B, Σₙ, μ₀, Σ₀, observation, θ, nSim; 
+    sample_t0 = sample_t0);
 
 # Plot the PGAS and Laplace posterior distributions, this time without true evolution
 pltLogIntensity = plot(; title = "Log Intensity "*L" \log\lambda_t = x_t")
@@ -179,10 +182,12 @@ x, y, plt = simTvPoisson(observation, transition, prior, θ, T);
 plt
 
 # Simulate from the PGAS posterior distribution
-PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, observation);
+PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, observation; 
+    sample_t0 = sample_t0);
 
 # Simulate from the Laplace approximation of the posterior distribution 
-LaplaceDraws = FFBS_laplace(U, y, A, B, Σₙ, μ₀, Σ₀, observation, θ, nSim);
+LaplaceDraws = FFBS_laplace(U, y, A, B, Σₙ, μ₀, Σ₀, observation, θ, nSim; 
+    sample_t0 = sample_t0);
 
 # Plot the PGAS and Laplace posterior distributions, without true evolution
 pltLogIntensity = plot(; title = "Log Intensity "*L" \log\lambda_t = x_t")

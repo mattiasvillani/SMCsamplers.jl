@@ -25,7 +25,6 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 # ### Simulate time-varying regression data with heteroscedastic innovations
@@ -93,7 +92,7 @@ Nₚ = 20       # Number of particles
 Nₛ = 1000     # Number of samples from posterior
 PGASdraws_prior = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation) 
 PGASmean_prior = mean(PGASdraws_prior, dims = 3)[:,:,1]
-PGASquantiles_prior = myquantile(PGASdraws_prior, [0.025, 0.975], dims = 3);
+PGASquantiles_prior = quantile_multidim(PGASdraws_prior, [0.025, 0.975], dims = 3);
 
 #Plot update rates
 update_rate = sum(abs.(diff(PGASdraws_prior[:,1,:]; dims = 2)) .> 0; dims=2) / Nₛ
@@ -118,7 +117,7 @@ U = zeros(T,1)
 
 FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
 FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
-FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
+FFBSquantiles = quantile_multidim(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
 
 # The posterior from PGAS is poor and does not agree with the one from FFBS for the earlier time periods:
 
@@ -157,7 +156,7 @@ initproposal(θ) = MvNormal(μₚ, Σₚ) # This is the proposal for the state �
 
 PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation, initproposal); 
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
 
 # The update rates are much better now
 update_rate = sum(abs.(diff(PGASdraws[:,1,:]; dims = 2)) .> 0; dims=2) / Nₛ

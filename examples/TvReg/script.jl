@@ -23,7 +23,6 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 # ### Simulate time-varying regression data
@@ -78,7 +77,7 @@ Nₚ = 20       # Number of particles
 Nₛ = 1000     # Number of samples from posterior
 PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation)
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
 
 # ### FFBS
 Σₑ = σₑ^2
@@ -92,7 +91,7 @@ U = zeros(T,1)
 
 FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
 FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
-FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
+FFBSquantiles = quantile_multidim(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
 
 # ### Plot the posterior mean and 95% credible intervals from both algorithms
 plottrue = true

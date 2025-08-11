@@ -27,7 +27,6 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 # ### Set up the state-space model
@@ -38,7 +37,7 @@ mutable struct LGSSParams
     σₑ::Float64
 end
 
-prior(θ) = Normal(0, θ.σᵥ / √((1 - θ.a^2)));
+prior(θ) = Normal(0, 10*θ.σᵥ / √((1 - θ.a^2)));
 transition(θ, state, t) = Normal(θ.a * state, θ.σᵥ);  
 observation(θ, state, t) = Normal(state, θ.σₑ);   
 
@@ -65,25 +64,26 @@ plot!(y; seriestype=:scatter, label="observed, y", xlabel="t", markersize = 2,
     color = colors[1], markerstrokecolor = :auto)
 
 # ### PGAS sampling
-Nₚ = 20      # Number of particles for PGAS
-Nₛ = 1000;   # Number of samples from posterior
-PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation)
+Nₚ = 20             # Number of particles for PGAS
+Nₛ = 10000;         # Number of samples from posterior
+sample_t0 = true    # Sample state at t=0 ?
+PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation; sample_t0 = sample_t0)
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
 
 # ### FFBS Sampling
 ## Set up the LGSS for FFBS and sample
 Σₑ = [θ.σₑ^2]
 Σₙ = [θ.σᵥ^2]
 μ₀ = [0;;]
-Σ₀ = [θ.σᵥ^2/(1-θ.a^2);;]
+Σ₀ = 10^2*[θ.σᵥ^2/(1-θ.a^2);;]
 A = θ.a
 C = 1
 B = 0
 U = zeros(T,1);
-FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ);
-FFBSmean = mean(FFBSdraws, dims = 3)[2:end,:,1] # Exclude initial state at t=0
-FFBSquantiles = myquantile(FFBSdraws, [0.025, 0.975], dims = 3)[2:end,:,:];
+FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ; sample_t0 = sample_t0);
+FFBSmean = mean(FFBSdraws, dims = 3) 
+FFBSquantiles = quantile_multidim(FFBSdraws, [0.025, 0.975], dims = 3);
 
 # ### Plot the posterior mean and 95% C.I. intervals from both algorithms
 plottrue = true
@@ -93,7 +93,7 @@ for j in 1:p
 
     #True state evolution
     if plottrue
-        plt_tmp = plot(x, c = colors[3], lw = 1, label = "true state")
+        plt_tmp = plot([NaN*ones(sample_t0);x], c = colors[3], lw = 1, label = "true state")
     else
         plt_tmp = plot()
     end

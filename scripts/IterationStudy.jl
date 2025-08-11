@@ -12,7 +12,7 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
+quantile_multidim(A, p; dims, kwargs...) = mapslices(x -> quantile_multidim(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 # ### Simulate data from a SAR(1,1) model with s = 12 
@@ -77,7 +77,7 @@ nParticles = 100         # Number of particles for PGAS
 PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, 
     observation);
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1];
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
     
 
 plt = [];
@@ -112,7 +112,7 @@ for (pltNumber, maxIter) in enumerate(1:3)
     IEKFdraws, μ_filterIEKF, Σ_filterIEKF = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, 
         Σ₀, nSim, maxIter; filter_output = true);
     IEKFmean = mean(IEKFdraws, dims = 3)[:,:,1];
-    IEKFquantiles = myquantile(IEKFdraws, [0.025, 0.975], dims = 3);
+    IEKFquantiles = quantile_multidim(IEKFdraws, [0.025, 0.975], dims = 3);
     for j = 1:nState
         plot!(plt[j], [0;time], IEKFmean[:,j], label = "EKF($(maxIter))", 
             color = colors[pltNumber+1], lw = 1.5)

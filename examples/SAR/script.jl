@@ -34,7 +34,7 @@
 
 # ### First some preliminaries:
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random, ForwardDiff, PDMats
-using LinearAlgebra, Measures, DisplayAs
+using LinearAlgebra, Measures
 
 colors = [
     "#6C8EBF", "#c0a34d", "#780000", "#007878",     
@@ -46,7 +46,6 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
     titlefontsize = 10, markerstrokecolor = :auto)
 
-myquantile(A, p; dims, kwargs...) = mapslices(x -> quantile(x, p; kwargs...), A; dims)
 Random.seed!(123);
 
 # ### Simulate data from a SAR(1,1) model with s = 12 
@@ -55,7 +54,6 @@ p = 1
 P = 1
 nState = p + P              
 T = 500
-timevect = 1:T
 s = 12
 T₊ = 2*(s+1)+T # include 2*(s+1) presample values
 ϕ(t) = 0.9*sin(2π*t/T) # Time-varying AR coefficient
@@ -68,7 +66,8 @@ for t = (s+2):(T₊)
     paramEvol[t,:] .= ϕ(t), Φ(t)
 end
 y = y[(s+2):end] # Remove presample values
-paramEvol = paramEvol[(s+2):end,:];
+paramEvol = paramEvol[(s+1):end,:];
+timevect = 0:T
 
 # ### Set up the SAR model as a nonlinear regression
 lag1 = [NaN;y[1:end-1]] # Lag 1
@@ -84,8 +83,8 @@ paramEvol = paramEvol[s+2:end,:];
 p1 = plot(timevect, paramEvol[:,1], label = L"\phi_t", lw = 2, c = colors[2], 
     title ="parameter evolution", ylims = (-1,1), legend = :bottomleft)
 plot!(timevect, paramEvol[:,2], label = L"\Phi_t", lw = 2, c = colors[3])
-p2 = plot(timevect, y, label = "data", lw = 2, c = colors[1], xlabel = "time", ylabel = "", 
-    legend = false, title = "time series")
+p2 = plot(timevect, [NaN;y], label = "data", lw = 2, c = colors[1], xlabel = "time", 
+    ylabel = "", legend = false, title = "time series")
 plot(p1, p2, layout = (1,2), size = (800, 300), bottommargin = 5mm)
 
 
@@ -123,17 +122,19 @@ nSim = 1000;            # Number of samples from posterior
 
 # ### PGAS sampling
 nParticles = 100         # Number of particles for PGAS
+sample_t0 = true         # Sample state at t=0 ?
 PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, 
     observation);
 PGASdraws = restr.(PGASdraws) # Apply the restriction to the draws
 PGASmedian = median(PGASdraws, dims = 3)[:,:,1];
-PGASquantiles = myquantile(PGASdraws, [0.025, 0.975], dims = 3);
+PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
     
 plt = [];
 titles = [L"\phi_{t}",L"\Phi_{t}"];
 legendPos = [:bottomleft, :bottomleft];
 for j = 1:nState
-    plt_tmp = plot(timevect, paramEvol[:,j], lw = 2, c = :black, linestyle = :solid, 
+    plt_tmp = plot(timevect, paramEvol[:,j], lw = 2, 
+        c = :black, linestyle = :solid, 
         label = "true", title = titles[j], legend = legendPos[j])
     plot!(timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,1],
         fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0) 
@@ -166,13 +167,13 @@ Cargs = [Z[t,:] for t in 1:T];
 EKFdraws, μ_filterEKF, Σ_filterEKF  = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim; filter_output = true);
 EKFdraws = restr.(EKFdraws) # Apply the restriction to the draws
 EKFmedian = median(EKFdraws, dims = 3)[:,:,1];
-EKFquantiles = myquantile(EKFdraws, [0.025, 0.975], dims = 3);
+EKFquantiles = quantile_multidim(EKFdraws, [0.025, 0.975], dims = 3);
 for j = 1:nState
-    plot!(plt[j], [0;timevect], EKFmedian[:,j], lw = 1, c = colors[3], linestyle = :solid, 
+    plot!(plt[j], timevect, EKFmedian[:,j], lw = 1, c = colors[3], linestyle = :solid, 
         label = "EKF(1)")
-    plot!(plt[j], [0;timevect], EKFquantiles[:,j,1], lw = 1, c = colors[3], 
+    plot!(plt[j], timevect, EKFquantiles[:,j,1], lw = 1, c = colors[3], 
         linestyle = :solid, label = nothing)
-    plot!(plt[j], [0;timevect], EKFquantiles[:,j,2], lw = 1, c = colors[3], 
+    plot!(plt[j], timevect, EKFquantiles[:,j,2], lw = 1, c = colors[3], 
         linestyle = :solid, label = nothing)
 end
 plot(plt..., layout = (1,2), size = (800, 300), ylims = (-1.7,1.7), xlabel = "time", 
@@ -185,13 +186,13 @@ UKFdraws = FFBS_unscented(U, Y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim
     α = α, β = β, κ = κ);
 UKFdraws = restr.(UKFdraws) # Apply the restriction to the draws
 UKFmedian = median(UKFdraws, dims = 3)[:,:,1]
-UKFquantiles = myquantile(UKFdraws, [0.025, 0.975], dims = 3);
+UKFquantiles = quantile_multidim(UKFdraws, [0.025, 0.975], dims = 3);
 for j = 1:nState
-    plot!(plt[j], [0;timevect], UKFmedian[:,j], lw = 1, c = colors[2], linestyle = :solid, 
+    plot!(plt[j], timevect, UKFmedian[:,j], lw = 1, c = colors[2], linestyle = :solid, 
         label = "UKF(1)")
-    plot!(plt[j], [0;timevect], UKFquantiles[:,j,1], lw = 1, c = colors[2], 
+    plot!(plt[j], timevect, UKFquantiles[:,j,1], lw = 1, c = colors[2], 
         linestyle = :solid, label = nothing)
-    plot!(plt[j], [0;timevect], UKFquantiles[:,j,2], lw = 1, c = colors[2], 
+    plot!(plt[j], timevect, UKFquantiles[:,j,2], lw = 1, c = colors[2], 
         linestyle = :solid, label = nothing)
 end
 plot(plt..., layout = (1,2), size = (800, 350),  ylims = (-1.7,1.7), xlabel = "time", 
@@ -207,13 +208,13 @@ if plotIEKF
         nSim, maxIter, tol; filter_output = true);
     IEKFdraws = restr.(IEKFdraws) # Apply the restriction to the draws
     IEKFmedian = median(IEKFdraws, dims = 3)[:,:,1];
-    IEKFquantiles = myquantile(IEKFdraws, [0.025, 0.975], dims = 3);
+    IEKFquantiles = quantile_multidim(IEKFdraws, [0.025, 0.975], dims = 3);
     for j = 1:nState
-        plot!(plt[j], [0;timevect], IEKFmedian[:,j], lw = 1, c = colors[4], linestyle = :solid, 
+        plot!(plt[j], timevect, IEKFmedian[:,j], lw = 1, c = colors[4], linestyle = :solid, 
             label = "IEKF($maxIter)")
-        plot!(plt[j], [0;timevect], IEKFquantiles[:,j,1], lw = 1, c = colors[4], 
+        plot!(plt[j], timevect, IEKFquantiles[:,j,1], lw = 1, c = colors[4], 
             linestyle = :solid, label = nothing)
-        plot!(plt[j], [0;timevect], IEKFquantiles[:,j,2], lw = 1, c = colors[4], 
+        plot!(plt[j], timevect, IEKFquantiles[:,j,2], lw = 1, c = colors[4], 
             linestyle = :solid, label = nothing)
     end
     plot(plt..., layout = (1,2), size = (800, 300), ylims = (-1.7,1.7), xlabel = "time", 
@@ -230,13 +231,13 @@ if plotIEKFL
         μ₀, Σ₀, nSim, maxIter, tol, linesearch; filter_output = true);
     IEKFLdraws = restr.(IEKFLdraws) # Apply the restriction to the draws
     IEKFLmedian = median(IEKFLdraws, dims = 3)[:,:,1];
-    IEKFLquantiles = myquantile(IEKFLdraws, [0.025, 0.975], dims = 3);
+    IEKFLquantiles = quantile_multidim(IEKFLdraws, [0.025, 0.975], dims = 3);
     for j = 1:nState
-        plot!(plt[j], [0;timevect], IEKFLmedian[:,j], lw = 1, c = colors[5], 
+        plot!(plt[j], timevect, IEKFLmedian[:,j], lw = 1, c = colors[5], 
             linestyle = :solid, label = "IEKF-L($maxIter)")
-        plot!(plt[j], [0;timevect], IEKFLquantiles[:,j,1], lw = 1, c = colors[5], 
+        plot!(plt[j], timevect, IEKFLquantiles[:,j,1], lw = 1, c = colors[5], 
             linestyle = :solid, label = nothing)
-        plot!(plt[j], [0;timevect], IEKFLquantiles[:,j,2], lw = 1, c = colors[5], 
+        plot!(plt[j], timevect, IEKFLquantiles[:,j,2], lw = 1, c = colors[5], 
             linestyle = :solid, label = nothing)
     end
     plot(plt..., layout = (1,2), size = (1400, 600), ylims = (-1.7,1.7), xlabel = "time", 
