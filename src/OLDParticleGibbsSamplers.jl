@@ -1,5 +1,5 @@
 """ 
-    PGASsimulate!(X, y, p, N, θ, prior, transition, observation, 
+    PGASupdate(y, p, N, θ, prior, transition, observation, 
         initproposal, resampler, Xref = nothing)  
 
 
@@ -13,7 +13,7 @@ Single update step of the PGAS algorithm with `N` particles to simulate from the
 
 Xref is a p×T matrix with conditioning particle path - if nothing, unconditional PF is run
 """ 
-function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,  
+function PGASupdate(y, p, N, θ, prior, transition, observation,  
     initproposal, resampler, Xref = nothing; sample_t0 = true) 
 
     conditioning = !isnothing(Xref)
@@ -21,6 +21,7 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
     if sample_t0
         T = T + 1
     end
+    X = zeros(N, p, T)      # Particles 
     a = zeros(Int, N, T)    # Ancestor indices
     w = zeros(N, T)         # Weights
     γ = zeros(N)
@@ -33,11 +34,10 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
                 X[n,:,t] .= rand(initproposal)
             end  
             if conditioning
-                X[N,:,t] = Xref[:,t]; # Last particle according to the conditioning
+                X[N,:,t] = Xref[:,t] # Last particle conditions on reference
             end
-
             # Compute importance weights
-            for n in 1:N
+            for n in 1:N               
                 if sample_t0
                     logweights[n] = logpdf(prior, X[n,:,t]) - 
                         logpdf(initproposal, X[n,:,t])
@@ -59,12 +59,12 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
                 ind = 1:N # no resampling
             end
 
-            for n in 1:N 
+            for n in 1:N
                 X[n,:,t] .= rand(transition(θ, X[ind[n],:,t-1], t-sample_t0))
             end 
              
-            if conditioning
-                X[N,:,t] = Xref[:, t]; # Set the N:th particle to the conditioning
+            if conditioning 
+                X[N,:,t] = Xref[:, t] # N:th particle to the conditioning
             end
             if conditioning && resample
                 # Ancestor sampling
@@ -131,20 +131,21 @@ function PGASsampler(y, θ, nDraws, N, prior, transition, observation,
     p = length(initproposal)
     T = length(y)
     Xdraws = zeros(p, sample_t0 + T, nDraws)
-    X = zeros(N, p, T + sample_t0)
 
     # Initialize the state by running a PF
-    Xdraw = PGASsimulate!(X, y, p, N, θ, prior, transition, observation, initproposal,    
-        resampler; sample_t0 = sample_t0)
+    println("hej mor ❤️ ") #FIXME: remove this debug info
+    X = PGASupdate(y, p, N, θ, prior, transition, observation, initproposal, resampler; 
+        sample_t0 = sample_t0)
         
-    Xdraws[:,:,1] = Xdraw
+    Xdraws[:,:,1] = X
 
     # Run MCMC loop
     for k = 2:nDraws 
+        println("PGAS iteration $k / $nDraws")
         # Sample the states using PGAS
-        Xdraw = PGASsimulate!(X, y, p, N, θ, prior, transition, observation, initproposal,
-            resampler, Xdraw; sample_t0 = sample_t0)    
-        Xdraws[:,:,k] = Xdraw      
+        X = PGASupdate(y, p, N, θ, prior, transition, observation, initproposal,
+            resampler, Xdraws[:,:,k-1]; sample_t0 = sample_t0)    
+        Xdraws[:,:,k] = X      
     end
 
     return permutedims(Xdraws, [2,1,3]) # returns T×p×nDraws array

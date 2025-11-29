@@ -291,6 +291,61 @@ function FFBS_unscented(U, Y, A, B, C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim =
 end
 
 
+function FFBS_SLR(U, Y, A, B, μₖ_x::Function, Pₖʸ_x::Function, Cargs, Σₙ, μ₀, Σ₀,
+        maxIter, nSim = 1; α = 1, β = 0, κ = 0, filter_output = false, 
+        sample_t0 = true)
+    T = size(Y,1)   # Number of time steps
+    n = length(μ₀)  # Dimension of the state vector  
+    r = size(Y,2)   # Dimension of the observed data vector
+    q = size(U,2)   # Dimension of the control vector
+    staticA = (ndims(A) == 3) ? false : true
+    staticΣₙ = (ndims(Σₙ) == 3  || eltype(Σₙ) <: PDMat) ? false : true
+    staticCargs = (ndims(Cargs) == 3 || eltype(Cargs) <: Vector) ? false : true
+
+    # Set up the weights for the UT transform
+    λ  = α^2*(n + κ) - n
+    ωₘ = [λ/(n + λ); ones(2*n)/(2*(n + λ))]
+    ωₛ  = [λ/(n + λ) + (1 - α^2 + β); ωₘ[2:end]]
+
+    γ = sqrt(n + λ)
+
+    # Run Kalman filter and collect matrices
+    μ_filter = zeros(T, n)      # Storage of μₜₜ
+    Σ_filter = zeros(n, n, T)   # Storage of Σₜₜ
+    μ_pred = zeros(T, n)        # Storage of μₜ,ₜ₋₁
+    Σ_pred = zeros(n, n, T)     # Storage of Σₜ,ₜ₋₁
+
+    μ = deepcopy(μ₀)
+    Σ = deepcopy(Σ₀)
+
+    for t = 1:T 
+        At = staticA ? A : @view A[:,:,t]
+        Cargs_t = staticCargs ? Cargs : Cargs[t]
+        Σₙt = staticΣₙ ? Σₙ : Σₙ[t]
+        u = (q == 1) ? U[t] : U[t,:]
+        y = (r == 1) ? Y[t] : Y[t,:]
+        μ, Σ, μ̄, Σ̄ = kalmanfilter_update_IPLF(μ, Σ, u, y, At, B, μₖ_x, Pₖʸ_x, Cargs_t,  Σₙt, maxIter, γ ,ωₘ, ωₛ)
+        
+        μ_filter[t,:] .= μ
+        Σ_filter[:,:,t] .= Σ
+        μ_pred[t,:] .= μ̄
+        Σ_pred[:,:,t] .= Σ̄
+    end
+
+    # Backward sampling for t = T, T-1, ..., 1
+    Xdraws = BackwardSampling(μ_filter, Σ_filter, μ_pred, Σ_pred, A, μ₀, Σ₀, nSim; 
+        sample_t0 = sample_t0)
+
+    if filter_output
+        return Xdraws, μ_filter, Σ_filter
+    else
+        return Xdraws
+    end
+
+end
+
+
+
 """ 
     FFBS_laplace(U, Y, A, B, Σₙ, μ₀, Σ₀, observation, θ, nSim = 1; filter_output = false) 
 
