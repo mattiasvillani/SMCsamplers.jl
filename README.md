@@ -39,7 +39,7 @@ a = 0.9         # Persistence
 σ₀ = 0.5        # Initial observation std deviation
 T = 200         # Length of time series
 
-θ = SVParams(a, σᵥ, σₑ) # Set up parameter struct for PGAS
+θ = SVParams(a, σᵥ, σ₀) # Set up parameter struct for PGAS
 
 # Algorithm settings
 Nₚ = 20         # Number of particles for PGAS
