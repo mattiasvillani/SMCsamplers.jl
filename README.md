@@ -6,7 +6,7 @@
 
 ## Description
 
-This is the start of a package for some Sequential Monte Carlo samplers in Julia. Some examples scripts can be found in the `examples` folder.
+Julia implementation of some posterior samplers for state-space models with general non-linear/non-Gaussian observation models and linear (heteroscedastic) transition models. Some example scripts can be found in the `examples` folder.
 
 ## Installation
 Install from the Julia package manager (via Github) by typing `]` in the Julia REPL:
