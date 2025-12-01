@@ -38,12 +38,14 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
 
             # Compute importance weights
             for n in 1:N
+                x = @view X[n,:,t] # Particle state at time t
                 if sample_t0
-                    logweights[n] = logpdf(prior, X[n,:,t]) - 
-                        logpdf(initproposal, X[n,:,t])
+                    logweights[n] = logpdf(prior, (p==1) ? x[1] : x) - 
+                        logpdf(initproposal, (p==1) ? x[1] : x)
                 else
-                    logweights[n] = logpdf(observation(θ, X[n,:,t], t), y[t])  + 
-                        logpdf(prior, X[n,:,t]) - logpdf(initproposal, X[n,:,t])
+                    logweights[n] = logpdf(observation(θ, (p==1) ? x[1] : x, t), y[t])  + 
+                        logpdf(prior, (p==1) ? x[1] : x) - 
+                        logpdf(initproposal, (p==1) ? x[1] : x)
                 end
             end
 
@@ -60,16 +62,20 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
             end
 
             for n in 1:N 
-                X[n,:,t] .= rand(transition(θ, X[ind[n],:,t-1], t-sample_t0))
+                x = @view X[ind[n],:,t-1] 
+                X[n,:,t] .= rand(transition(θ, (p==1) ? x[1] : x, t-sample_t0))
             end 
              
             if conditioning
-                X[N,:,t] = Xref[:, t]; # Set the N:th particle to the conditioning
+                @views X[N,:,t] = Xref[:, t]; # Set the N:th particle to the conditioning
             end
             if conditioning && resample
                 # Ancestor sampling
                 for n = 1:N 
-                    γ[n] = logpdf(transition(θ, X[n,:,t-1], t-sample_t0), Xref[:,t])
+                    x = @view X[n,:,t-1]
+                    xref = @view Xref[:,t]
+                    γ[n] = logpdf(transition(θ, (p==1) ? x[1] : x, t-sample_t0), 
+                        (p==1) ? xref[1] : xref)
                 end
                 w_as = w[:,t-1] .* exp.(γ .- maximum(γ))
                 w_as = w_as/sum(w_as)
@@ -82,7 +88,8 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
 
             # Compute importance weights
             for n in 1:N
-                logweights[n] = logpdf(observation(θ, X[n,:,t], t-sample_t0), 
+                x = @view X[n,:,t]
+                logweights[n] = logpdf(observation(θ, (p==1) ? x[1] : x, t-sample_t0), 
                     y[t-sample_t0]) 
             end
             
@@ -98,7 +105,7 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
     # Generate the trajectories from ancestor indices
     ind = a[:,T];
     for t = (T-1):-1:1
-        X[:,:, t] = X[ind,:,t]
+        X[:,:,t] = X[ind,:,t]
         ind = a[ind,t]
     end
     # Finally, sample a trajectory and return it

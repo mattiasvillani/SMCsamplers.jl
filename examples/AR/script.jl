@@ -32,12 +32,8 @@
 # ### First some preliminaries:
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random, ForwardDiff, PDMats
 using LinearAlgebra, Measures
-
-colors = [
-    "#6C8EBF", "#c0a34d", "#780000", "#007878",     
-    "#b5c6df","#eadaaa","#AE6666", "#4CA0A0","#bf9d6c", "#3A6B35", 
-    "#9d6a6d","#d9c6c7", "#98bbb9", "#bf8d6c", 
-    "#CBD18F"]
+using Utils: quantile_multidim
+using Utils: mvcolors as colors
 
 gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
     xtickfontsize=8, ytickfontsize=8, xguidefontsize=8, yguidefontsize=8,
@@ -60,7 +56,7 @@ for t = 2:T₊
 end
 timevect = 0:T
 
-# ### Set up the SAR model as a nonlinear regression
+# ### Set up the AR model as a nonlinear regression
 lag1 = [NaN;y[1:end-1]]     # Lag 1
 Z = lag1
 Z = Z[2:end, :]             # Remove first s rows with NaNs
@@ -75,7 +71,6 @@ p2 = plot(timevect, [NaN;y], label = "data", lw = 2, c = colors[1], xlabel = "ti
 plot(p1, p2, layout = (1,2), size = (800, 300), bottommargin = 5mm)
 
 
-
 stable = false  # true parameters are restricted to stable region.
 if stable
     restr(x) = x/sqrt(1 + x^2) 
@@ -85,16 +80,16 @@ else
     invrestr(y) = y
 end
 
-# ### Set up SAR model structure for PGAS and set static parameter values
-mutable struct SARParams 
+# ### Set up AR model structure for PGAS and set static parameter values
+mutable struct ARParams 
     σₑ::Float64
     σᵥ::Float64
     σ₀::Float64
     Z::Matrix{Float64}
 end
 
-prior(θ) = MvNormal(zeros(p), θ.σ₀)
-transition(θ, state, t) = MvNormal(state, θ.σᵥ)  
+prior(θ) = Normal(0, θ.σ₀)
+transition(θ, state, t) = Normal(state, θ.σᵥ)  
 function observation(θ, state, t)
     state = restr.(state) # Apply the restriction to the state
     return Normal(θ.Z[t,:]' ⋅ state, θ.σₑ)
@@ -103,7 +98,7 @@ end
 σₑ = σₑ                 # Noise std deviation from static model
 σᵥ = 0.1                # State std deviation
 σ₀ = 1                  # Initial state std deviation
-θ = SARParams(σₑ, σᵥ, σ₀, Z);
+θ = ARParams(σₑ, σᵥ, σ₀, Z);
 
 nSim = 1000;            # Number of samples from posterior
 
@@ -151,7 +146,8 @@ Cargs = [Z[t,:] for t in 1:T];
 ∂C(state, z) = ForwardDiff.gradient(state -> C(state, z), state)';
 
 # ### FFBS posterior sampling using the Extended Kalman filter (EKF)
-EKFdraws, μ_filterEKF, Σ_filterEKF  = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim; filter_output = true);
+EKFdraws, μ_filterEKF, Σ_filterEKF  = FFBSx(U, Y, A, B, C, ∂C, Cargs, Σₑ, Σₙ, μ₀, Σ₀, nSim; 
+    filter_output = true);
 EKFdraws = restr.(EKFdraws) # Apply the restriction to the draws
 EKFmedian = median(EKFdraws, dims = 3)[:,:,1];
 EKFquantiles = quantile_multidim(EKFdraws, [0.025, 0.975], dims = 3);
@@ -252,6 +248,3 @@ if plotLaplace
     plot(plt..., layout = (1,2), size = (1400, 600), ylims = (-1.7,1.7), xlabel = "time", 
         bottommargin = 5mm)
 end
-
-
-savefig("SAR_stable.pdf")
