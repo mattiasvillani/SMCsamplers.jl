@@ -1,7 +1,8 @@
 module SMCsamplers
 
 using Plots, LinearAlgebra, Distributions, Statistics, Random
-using Measures, PDMats, LaTeXStrings, ForwardDiff, LineSearches
+using Measures, PDMats, LaTeXStrings, ForwardDiff
+using LineSearches, Optim
 using Utils: quantile_multidim
 include("Misc.jl")
 export NewtonRaphson

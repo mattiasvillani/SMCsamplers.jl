@@ -2,7 +2,7 @@
 
 julia_version = "1.12.2"
 manifest_format = "2.0"
-project_hash = "da73ddf60f4cf794c92f5229a11a936304f046a8"
+project_hash = "b40f9d8dc8a75c3c20229377b549384130f3c3c3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "8be2ae325471fc20b11c27bb34b518541d07dd3a"
@@ -1460,7 +1460,7 @@ uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
 
 [[deps.SMCsamplers]]
-deps = ["BenchmarkTools", "CSV", "Distributions", "ForwardDiff", "LaTeXStrings", "LineSearches", "LinearAlgebra", "Literate", "Measures", "PDMats", "PProf", "Plots", "Profile", "Random", "Revise", "Statistics"]
+deps = ["BenchmarkTools", "CSV", "Distributions", "ForwardDiff", "LaTeXStrings", "LineSearches", "LinearAlgebra", "Literate", "Measures", "PDMats", "PProf", "Plots", "Profile", "Random", "Revise", "Statistics", "Utils"]
 path = "."
 uuid = "2328efba-24c2-4a10-a32f-a74f69d05fca"
 version = "1.0.0-DEV"

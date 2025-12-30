@@ -1,5 +1,5 @@
 """ 
-    PGASsimulate!(X, y, p, N, θ, prior, transition, observation, 
+    PGASsimulate!(X, y, p, N, param, prior, transition, observation, 
         initproposal, resampler, Xref = nothing)  
 
 
@@ -7,13 +7,13 @@ Single update step of the PGAS algorithm with `N` particles to simulate from the
 - `prior` is the prior for the initial state p(x₁) 
 - `transition` is the transition density p(xₜ | xₜ₋₁)
 - `observation` is the observation density p(yₜ | xₜ)
-θ is a struct with all the parameters in the model needed to evaluate the prior, transition and observation densities.
+param is a struct with all the parameters in the model needed to evaluate the prior, transition and observation densities.
 
 `initproposal` is the proposal distribution for x₁ and `resampler` is the resampling function which defaults to systematic resampling.
 
-Xref is a p×T matrix with conditioning particle path - if nothing, unconditional PF is run
+Xref is a T×p matrix with conditioning particle path - if nothing, unconditional PF is run
 """ 
-function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,  
+function PGASsimulate!(X, y, p, N, param, prior, transition, observation,  
     initproposal, resampler, Xref = nothing; sample_t0 = true) 
 
     conditioning = !isnothing(Xref)
@@ -33,7 +33,7 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
                 X[n,:,t] .= rand(initproposal)
             end  
             if conditioning
-                X[N,:,t] = Xref[:,t]; # Last particle according to the conditioning
+                X[N,:,t] = Xref[t,:]; # Last particle according to the conditioning
             end
 
             # Compute importance weights
@@ -43,7 +43,7 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
                     logweights[n] = logpdf(prior, (p==1) ? x[1] : x) - 
                         logpdf(initproposal, (p==1) ? x[1] : x)
                 else
-                    logweights[n] = logpdf(observation(θ, (p==1) ? x[1] : x, t), y[t])  + 
+                    logweights[n] = logpdf(observation(param, (p==1) ? x[1] : x, t), y[t])+ 
                         logpdf(prior, (p==1) ? x[1] : x) - 
                         logpdf(initproposal, (p==1) ? x[1] : x)
                 end
@@ -51,6 +51,7 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
 
             weights = exp.(logweights .- maximum(logweights))
             w[:,t] = weights/sum(weights) # Save the normalized weights
+
             ind = 1:N
         else # t ≥ 2
             resample = (ESS(w[:,t-1]) <= ESSthreshold)
@@ -63,18 +64,18 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
 
             for n in 1:N 
                 x = @view X[ind[n],:,t-1] 
-                X[n,:,t] .= rand(transition(θ, (p==1) ? x[1] : x, t-sample_t0))
+                X[n,:,t] .= rand(transition(param, (p==1) ? x[1] : x, t-sample_t0))
             end 
              
             if conditioning
-                @views X[N,:,t] = Xref[:, t]; # Set the N:th particle to the conditioning
+                @views X[N,:,t] = Xref[t,:]; # Set the N:th particle to the conditioning
             end
             if conditioning && resample
                 # Ancestor sampling
                 for n = 1:N 
                     x = @view X[n,:,t-1]
-                    xref = @view Xref[:,t]
-                    γ[n] = logpdf(transition(θ, (p==1) ? x[1] : x, t-sample_t0), 
+                    xref = @view Xref[t,:]
+                    γ[n] = logpdf(transition(param, (p==1) ? x[1] : x, t-sample_t0), 
                         (p==1) ? xref[1] : xref)
                 end
                 w_as = w[:,t-1] .* exp.(γ .- maximum(γ))
@@ -89,13 +90,13 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
             # Compute importance weights
             for n in 1:N
                 x = @view X[n,:,t]
-                logweights[n] = logpdf(observation(θ, (p==1) ? x[1] : x, t-sample_t0), 
+                logweights[n] = logpdf(observation(param, (p==1) ? x[1] : x, t-sample_t0), 
                     y[t-sample_t0]) 
             end
-            
-            weights = w[:,t-1] .* exp.(logweights .- maximum(logweights))
-            w[:,t] = weights/sum(weights) # Save the normalized weights
 
+            weights = w[:,t-1] .* exp.(logweights .- maximum(logweights))
+
+            w[:,t] = weights/sum(weights) # Save the normalized weights
         end
         
     end
@@ -110,7 +111,7 @@ function PGASsimulate!(X, y, p, N, θ, prior, transition, observation,
     end
     # Finally, sample a trajectory and return it
     J = findfirst(rand(1) .<= cumsum(w[:,T]))   
-    return X[J,:,:] # Maybe also return the particle system: X, w
+    return X[J,:,:]'
 
 end
 
@@ -118,7 +119,7 @@ end
 
 
 """ 
-    PGASsampler(y, θ, nDraws, N, prior, transition, observation, 
+    PGASsampler(y, param, nDraws, N, prior, transition, observation, 
         initproposal = prior, resampler = systematic)
 
 Uses the PGAS algorithm with `N` particles to simulate `nDraws` from the joint smoothing posterior of the state xₜ in the state space model determined by the three functions (that all return distributions):
@@ -126,35 +127,35 @@ Uses the PGAS algorithm with `N` particles to simulate `nDraws` from the joint s
 - `transition` is the transition density p(xₜ | xₜ₋₁)
 - `observation` is the observation density p(yₜ | xₜ)
 
-θ is a struct with all the parameters in the model needed to evaluate the prior, transition and observation densities.
+param is a struct with all the parameters and data (e.g. covariates) in the model needed to evaluate the prior, transition and observation densities.
 
 `initproposal` is the proposal distribution for x₁ and `resampler` is the resampling function which defaults to systematic resampling. If sample_t0 is true, then sample also a t=0.
 """ 
-function PGASsampler(y, θ, nDraws, N, prior, transition, observation, 
+function PGASsampler(y, param, nDraws, N, prior, transition, observation, 
     initproposal = prior, resampler = systematic; sample_t0 = true)
 
-    initproposal = initproposal(θ)
-    prior = prior(θ)
+    initproposal = initproposal(param)
+    prior = prior(param)
     p = length(initproposal)
     T = length(y)
-    Xdraws = zeros(p, sample_t0 + T, nDraws)
+    Xdraws = zeros(sample_t0 + T, p, nDraws)
     X = zeros(N, p, T + sample_t0)
 
     # Initialize the state by running a PF
-    Xdraw = PGASsimulate!(X, y, p, N, θ, prior, transition, observation, initproposal,    
-        resampler; sample_t0 = sample_t0)
+    Xdraw = PGASsimulate!(X, y, p, N, param, prior, transition, observation, 
+        initproposal, resampler; sample_t0 = sample_t0)
         
     Xdraws[:,:,1] = Xdraw
 
     # Run MCMC loop
     for k = 2:nDraws 
         # Sample the states using PGAS
-        Xdraw = PGASsimulate!(X, y, p, N, θ, prior, transition, observation, initproposal,
-            resampler, Xdraw; sample_t0 = sample_t0)    
+        Xdraw = PGASsimulate!(X, y, p, N, param, prior, transition, observation, 
+            initproposal, resampler, Xdraw; sample_t0 = sample_t0)    
         Xdraws[:,:,k] = Xdraw      
     end
 
-    return permutedims(Xdraws, [2,1,3]) # returns T×p×nDraws array
+    return Xdraws#permutedims(Xdraws, [2,1,3]) # returns T×p×nDraws array
 
 end 
 

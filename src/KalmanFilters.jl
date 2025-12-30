@@ -226,7 +226,7 @@ end
 
 
 """ 
-    kalmanfilter_update_IPLF(mₖ, Pₖ, u, y, A, B,  μₖ_x, Pₖʸ_x, Cargs,  Σₙ, max_iterations, γ, W) 
+    kalmanfilter_update_IPLF(μ, Ω, u, y, A, B,  condMean, condCov, Cargs,  Σₙ, max_iterations, γ, W) 
 
 A single extended Kalman filter update at time t of the state space model: 
 
@@ -238,116 +238,128 @@ where f(xₜ) is the distribution of observations.
 xₜ is the n-dim state
 uₜ is the m-dim control
 yₜ is the k-dim observed data. 
-μₖ_x is the conditional mean of yₜ given xₜ
-Pₖʸ_x is the conditional covariance of yₜ given xₜ
+condMean is the conditional mean of yₜ given xₜ
+condCov is the conditional covariance of yₜ given xₜ
 
 Reference: Simo Sarkka and Lennart Svensson (2023). Bayesian Filtering and Smoothing. Second Edition. Cambridge University Press.
 """
 
 ## PrLF and IPLF
-function kalmanfilter_update_IPLF(mₖ, Pₖ, u, y, A, B,  μₖ_x, Pₖʸ_x, Cargs,  Σₙ, 
+function kalmanfilter_update_IPLF(μ, Ω, u, y, A, B,  condMean, condCov, Cargs,  Σₙ, 
     max_iterations, γ, ωₘ, ωₛ)
 
     ### Prior propagation
-    mₖ⁻ = A*mₖ .+ B*u
-    Pₖ⁻ = A*Pₖ*A' + Σₙ
+    μ̄ = A*μ .+ B*u
+    Ω̄ = A*Ω*A' + Σₙ   
 
-    mₖ = deepcopy(mₖ⁻)
-    Pₖ = deepcopy(Pₖ⁻) 
+    μ = deepcopy(μ̄)
+    Ω = deepcopy(Ω̄) 
 
     ### Measurement update
     for i in 1:max_iterations
 
-        L̄ = cholesky(Hermitian(Pₖ)).L
+        L̄ = cholesky(Hermitian(Ω)).L
 
-        ## Generate sigma points centered at the current mean mₖ
-        χₖ = [mₖ mₖ .+ (L̄ * γ) mₖ .- (L̄ * γ)] # n×(2n+1) matrix with sigma points; N(mₖ, Pₖ)
+        ## Generate sigma points centered at the current mean μ
+        χ = [μ μ .+ (L̄ * γ) μ .- (L̄ * γ)] # n×(2n+1) matrix with sigma points; N(μ, Ω)
 
         ## Propagate the sigma points through the conditional mean and covariance functions
-        println(χₖ[:, i])
-        println(χₖ)
-        μₖ = [[μₖ_x(χₖ[:, i], Cargs[j]) for j in 1:size(y, 1)] for i in 1:size(χₖ, 2)]
-        Pₖʸ = [isa(p, Number) ? p * LinearAlgebra.I(size(y,1)) : Diagonal(p) for p in (Pₖʸ_x(χₖ[:, i], Cargs) for i in 1:size(χₖ, 2))]
+        println(χ[:, i])
+        println(χ)
+        μₖ = [[condMean(χ[:, i], Cargs[j]) for j in 1:size(y, 1)] for i in 1:size(χ, 2)]
+        Pₖʸ = [isa(p, Number) ? p * LinearAlgebra.I(size(y,1)) : Diagonal(p) for p in (condCov(χ[:, i], Cargs) for i in 1:size(χ, 2))]
 
         ## Compute the required moments:
         μₖ⁺ = sum(μₖ .* ωₘ) ## marginal mean of yₜ
         Δμ = reduce(hcat, [v .- μₖ⁺ for v in μₖ])' 
-        Pₖˣʸ = (χₖ .- mₖ)* Diagonal(ωₛ) * Δμ # cross-covariance between xₜ and yₜ
+        Pₖˣʸ = (χ .- μ)* Diagonal(ωₛ) * Δμ # cross-covariance between xₜ and yₜ
         Pₖʸ = sum(ωₛ .* (Pₖʸ .+ [(v .- μₖ⁺)*(v .- μₖ⁺)' for v in μₖ])) # predicted measurement covariance
  
         ## Linearization of measurement model using Equations (10.14).
         # yₜ ≈ Aₖ * xₜ + bₖ + eₖ, where eₖ ~ N(0, Ωₖ)
 
-        Aₖ = Pₖˣʸ' * inv(Pₖ)
-        bₖ = μₖ⁺ .- Aₖ * mₖ
-        Ωₖ = Pₖʸ .- Aₖ * Pₖ * Aₖ'
+        Aₖ = Pₖˣʸ' * inv(Ω)
+        bₖ = μₖ⁺ .- Aₖ * μ
+        Ωₖ = Pₖʸ .- Aₖ * Ω * Aₖ'
         
         ## Perform the Kalman update using the linearized model
-        μₖⁱ = Aₖ * mₖ⁻ + bₖ
-        Sₖ = Aₖ * Pₖ⁻ * Aₖ' + Ωₖ 
-        Kₖ = Pₖ⁻ * Aₖ' / Sₖ 
+        μₖⁱ = Aₖ * μ̄ + bₖ
+        Sₖ = Aₖ * Ω̄ * Aₖ' + Ωₖ 
+        Kₖ = Ω̄ * Aₖ' / Sₖ 
         
-        mₖ_updated = mₖ⁻ + Kₖ * (y .- μₖⁱ)
-        Pₖ_updated = Pₖ⁻ - Kₖ * Sₖ * Kₖ'
+        μ_updated = μ̄ + Kₖ * (y .- μₖⁱ)
+        Ω_updated = Ω̄ - Kₖ * Sₖ * Kₖ'
 
-        distance = KLD(mₖ, Pₖ, mₖ_updated, Pₖ_updated)
+        distance = KLD(μ, Ω, μ_updated, Ω_updated)
         
         if distance < 1e-3
-            mₖ = mₖ_updated
-            Pₖ = Pₖ_updated
+            μ = μ_updated
+            Ω = Ω_updated
             #println("Converged at iteration $i")
             break
         end
 
-        mₖ = mₖ_updated
-        Pₖ = Pₖ_updated
+        μ = μ_updated
+        Ω = Ω_updated
     end
 
-    return mₖ, Pₖ, mₖ⁻, Pₖ⁻
+    return μ, Ω, μ̄, Ω̄
 
 end
 
 
 
 """ 
-    laplace_kalmanfilter_update(μ, Ω, u, y, A, B, logLik, Σₙ) 
+    laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, θ, Σₙ, t) 
 
 
 """ 
-function laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, θ, Σₙ, t)
+function laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, θ, Σₙ, t, 
+        μ_init = nothing)
 
     # Prior propagation step - moving state forward without new measurement
     μ̄ = A*μ .+ B*u
-    Ω̄ = A*Ω*A' + Σₙ
+    Ω̄ = Hermitian(A*Ω*A' + Σₙ)
+
+    if isnothing(μ_init) μ_init = μ̄  end
 
     # Measurement update - updating the N(μ̄, Ω̄) prior with the new data point
     filt_logpost(x) = logpdf(observation(θ, x, t), y) + logpdf(MvNormal(μ̄[:], Ω̄), x)
-    μ, Ω = laplace_approximation(filt_logpost, μ̄)  # Initial guess 
+    μ, Ω = laplace_approximation(filt_logpost, μ_init)  # Initial guess 
 
     return μ, Ω, μ̄, Ω̄
 end
 
-# Laplace approx. (univariate only).
 function laplace_approximation(logposterior, initial_guess, cov_scale=1.0, max_iter=100)
     
     # Find mode (MAP estimate)
-    function find_mode(x0)
-        x = copy(x0)
-        for _ in 1:max_iter
-            g = ForwardDiff.gradient(logposterior, x)
-            H = ForwardDiff.hessian(logposterior, x)
-            #g = ForwardDiff.derivative(logposterior, x)
-            #H = ForwardDiff.derivative(x -> ForwardDiff.derivative(logposterior, x), x)
-            Δx = -H \ g  # Newton-Raphson step
-            x += Δx
-            if norm(Δx) < 1e-6
-                return x
+    handbaked = false
+    if handbaked 
+        function find_mode(x0)
+            x = copy(x0)
+            for _ in 1:max_iter
+                g = ForwardDiff.gradient(logposterior, x)
+                H = ForwardDiff.hessian(logposterior, x)
+                #g = ForwardDiff.derivative(logposterior, x)
+                #H = ForwardDiff.derivative(x -> ForwardDiff.derivative(logposterior, x), x)
+                Δx = -H \ g  # Newton-Raphson step
+                x += Δx
+                if norm(Δx) < 1e-6
+                    return x
+                end
             end
+            error("Mode finding did not converge")
         end
-        error("Mode finding did not converge")
+        θ_mode = find_mode(initial_guess)
+    else
+        optres = optimize(x -> -logposterior(x), initial_guess, 
+            method = NewtonTrustRegion();
+            autodiff = :forward, f_abstol = 1e-6, iterations = max_iter)
+        θ_mode = Optim.minimizer(optres)
+        if Optim.iterations(optres) > 10
+            println("nIter to mode is larger than 10: $(Optim.iterations(optres))")
+        end
     end
-    
-    θ_mode = find_mode(initial_guess)
     
     # Compute Hessian at mode
     Σ = -inv(ForwardDiff.hessian(logposterior, θ_mode))  # Covariance matrix
@@ -361,34 +373,3 @@ function laplace_approximation(logposterior, initial_guess, cov_scale=1.0, max_i
 
 end
 
-# Laplace for multivariate:
-function laplace_approximation_multi(logposterior, initial_guess; cov_scale=1.0, 
-    max_iter=100)
-    
-    # Find mode (MAP estimate)
-    function find_mode(x0)
-        x = copy(x0)
-        for _ in 1:max_iter
-            g = ForwardDiff.gradient(logposterior, x)
-            H = ForwardDiff.hessian(logposterior, x)
-            Δx = -H \ g  # Newton-Raphson step
-            x += Δx
-            if norm(Δx) < 1e-6
-                return x
-            end
-        end
-        error("Mode finding did not converge")
-    end
-    
-    θ_mode = find_mode(initial_guess)
-    
-    # Compute Hessian at mode
-    Σ = -inv(ForwardDiff.hessian(logposterior, θ_mode))  # Covariance matrix
-    
-    # Adjust covariance if needed (sometimes too narrow/wide).
-    Σ *= cov_scale^2
-    
-    # Return results
-    return θ_mode, Σ
-
-end

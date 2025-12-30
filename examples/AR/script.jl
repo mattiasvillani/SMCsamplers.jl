@@ -118,7 +118,7 @@ for j = 1:nState
     plt_tmp = plot(timevect, paramEvol[:,j], lw = 2, 
         c = :black, linestyle = :solid, 
         label = "true", title = titles[j], legend = legendPos[j])
-    plot!(timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,1],
+    plot!(plt_tmp, timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,1],
         fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0) 
     plot!(timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,2],
         fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0) 
