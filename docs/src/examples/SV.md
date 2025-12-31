@@ -28,6 +28,42 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
 Random.seed!(123);
 ````
 
+````
+Precompiling packages...
+    957.9 ms  ✓ BangBang → BangBangTablesExt
+   1868.7 ms  ✓ TableOperations
+   2718.8 ms  ✓ PProf
+   3983.3 ms  ✓ StatsBase
+    942.7 ms  ✓ PDMats → StatsBaseExt
+   5014.6 ms  ✓ Latexify
+   4684.4 ms  ✓ Transducers
+   2156.5 ms  ✓ Clustering
+   1171.1 ms  ✓ Latexify → SparseArraysExt
+   1056.1 ms  ✓ Transducers → TransducersAdaptExt
+   3587.4 ms  ✓ Optim
+   2252.5 ms  ✓ AbstractMCMC
+   5744.2 ms  ✓ Distributions
+   1699.6 ms  ✓ Distributions → DistributionsTestExt
+   2033.3 ms  ✓ MultivariateStats
+   2651.0 ms  ✓ Distributions → DistributionsChainRulesCoreExt
+   1971.4 ms  ✓ KernelDensity
+   3370.4 ms  ✓ AdvancedMH
+   2062.6 ms  ✓ AdvancedMH → AdvancedMHForwardDiffExt
+  18224.3 ms  ✓ CSV
+  23458.4 ms  ✓ PrettyTables
+  61065.7 ms  ✓ Plots
+   4132.6 ms  ✓ Plots → FileIOExt
+  48650.7 ms  ✓ DataFrames
+   2087.0 ms  ✓ Latexify → DataFramesExt
+   2115.6 ms  ✓ Transducers → TransducersDataFramesExt
+   2469.8 ms  ✓ BangBang → BangBangDataFramesExt
+   9199.9 ms  ✓ StatsPlots
+   4818.2 ms  ✓ Utils
+   5008.4 ms  ✓ SMCsamplers
+  30 dependencies successfully precompiled in 87 seconds. 321 already precompiled.
+
+````
+
 ### Set up SV model structure for PGAS and set static parameter values
 
 ````julia

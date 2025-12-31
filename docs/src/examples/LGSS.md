@@ -32,6 +32,71 @@ gr(legend = :bottom, grid = false, color = colors[2], lw = 2, legendfontsize=8,
 Random.seed!(123);
 ````
 
+````
+Precompiling packages...
+    StatsBase Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/StatsBase/EZjIG_YH49B.ji.pidfile)
+    Latexify Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Latexify/AItXo_YH49B.ji.pidfile)
+    PProf Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/PProf/yQ0u9_YH49B.ji.pidfile)
+    PrettyTables Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/PrettyTables/kRdcL_YH49B.ji.pidfile)
+    CSV Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/CSV/HHBkp_YH49B.ji.pidfile)
+    TableOperations Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/TableOperations/5GGWt_YH49B.ji.pidfile)
+    796.5 ms  ✓ TableOperations
+    969.8 ms  ✓ BangBang → BangBangTablesExt
+    Transducers Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Transducers/cATK6_YH49B.ji.pidfile)
+   1793.5 ms  ✓ PProf
+   2942.2 ms  ✓ StatsBase
+    StatsBaseExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/StatsBaseExt/6AXAK_YH49B.ji.pidfile)
+    Clustering Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Clustering/Ovl2Q_YH49B.ji.pidfile)
+    Optim Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Optim/R5uoh_YH49B.ji.pidfile)
+    956.4 ms  ✓ PDMats → StatsBaseExt
+    Distributions Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Distributions/xILW0_YH49B.ji.pidfile)
+   3979.7 ms  ✓ Latexify
+    SparseArraysExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/SparseArraysExt/h5qXK_YH49B.ji.pidfile)
+   3756.3 ms  ✓ Transducers
+    TransducersAdaptExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/TransducersAdaptExt/H2bhQ_YH49B.ji.pidfile)
+    AbstractMCMC Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/AbstractMCMC/5x8OI_YH49B.ji.pidfile)
+   2143.2 ms  ✓ Clustering
+   1197.9 ms  ✓ Latexify → SparseArraysExt
+    Plots Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Plots/ld3vC_YH49B.ji.pidfile)
+    994.7 ms  ✓ Transducers → TransducersAdaptExt
+   3687.7 ms  ✓ Optim
+   2235.7 ms  ✓ AbstractMCMC
+   5856.4 ms  ✓ Distributions
+    DistributionsTestExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DistributionsTestExt/Mb8xE_YH49B.ji.pidfile)
+    DistributionsChainRulesCoreExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DistributionsChainRulesCoreExt/uFTmV_YH49B.ji.pidfile)
+    MultivariateStats Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/MultivariateStats/l7I74_YH49B.ji.pidfile)
+   1815.8 ms  ✓ Distributions → DistributionsTestExt
+    AdvancedMH Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/AdvancedMH/MTkce_YH49B.ji.pidfile)
+   2103.6 ms  ✓ MultivariateStats
+   2782.1 ms  ✓ Distributions → DistributionsChainRulesCoreExt
+    KernelDensity Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/KernelDensity/4QyGx_YH49B.ji.pidfile)
+   1900.4 ms  ✓ KernelDensity
+   3404.9 ms  ✓ AdvancedMH
+    AdvancedMHForwardDiffExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/AdvancedMHForwardDiffExt/W2MQ8_YH49B.ji.pidfile)
+   2085.9 ms  ✓ AdvancedMH → AdvancedMHForwardDiffExt
+  17247.7 ms  ✓ CSV
+  22419.5 ms  ✓ PrettyTables
+    DataFrames Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DataFrames/AR9oZ_YH49B.ji.pidfile)
+  61197.9 ms  ✓ Plots
+    FileIOExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/FileIOExt/uE6Zh_YH49B.ji.pidfile)
+    StatsPlots Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/StatsPlots/SiylL_YH49B.ji.pidfile)
+   4391.8 ms  ✓ Plots → FileIOExt
+  48874.1 ms  ✓ DataFrames
+    BangBangDataFramesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/BangBangDataFramesExt/sNKPH_YH49B.ji.pidfile)
+    DataFramesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DataFramesExt/8XGBh_YH49B.ji.pidfile)
+    TransducersDataFramesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/TransducersDataFramesExt/u4UET_YH49B.ji.pidfile)
+   1977.8 ms  ✓ Latexify → DataFramesExt
+   2137.8 ms  ✓ Transducers → TransducersDataFramesExt
+   2351.0 ms  ✓ BangBang → BangBangDataFramesExt
+   9761.8 ms  ✓ StatsPlots
+    Utils Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Utils/OIG8g_YH49B.ji.pidfile)
+   4930.5 ms  ✓ Utils
+    SMCsamplers Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/SMCsamplers/9IRyf_YH49B.ji.pidfile)
+   4495.3 ms  ✓ SMCsamplers
+  30 dependencies successfully precompiled in 86 seconds. 321 already precompiled.
+
+````
+
 ### Set up the state-space model
 Set up static parameter structure and the model distributions for PGAS, and set static parameter values
 

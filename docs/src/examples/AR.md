@@ -47,6 +47,72 @@ gr(legend = :topleft, grid = false, color = colors[2], lw = 2, legendfontsize=8,
 Random.seed!(123);
 ````
 
+````
+Precompiling packages...
+    StatsBase Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/StatsBase/EZjIG_YH49B.ji.pidfile)
+    Latexify Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Latexify/AItXo_YH49B.ji.pidfile)
+    PProf Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/PProf/yQ0u9_YH49B.ji.pidfile)
+    PrettyTables Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/PrettyTables/kRdcL_YH49B.ji.pidfile)
+    CSV Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/CSV/HHBkp_YH49B.ji.pidfile)
+    BangBangTablesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/BangBangTablesExt/h92XF_YH49B.ji.pidfile)
+    TableOperations Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/TableOperations/5GGWt_YH49B.ji.pidfile)
+     53.3 ms  ✓ BangBang → BangBangTablesExt
+    Transducers Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Transducers/cATK6_YH49B.ji.pidfile)
+    977.3 ms  ✓ TableOperations
+   1947.0 ms  ✓ PProf
+   3180.8 ms  ✓ StatsBase
+    StatsBaseExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/StatsBaseExt/6AXAK_YH49B.ji.pidfile)
+    Clustering Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Clustering/Ovl2Q_YH49B.ji.pidfile)
+    Optim Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Optim/R5uoh_YH49B.ji.pidfile)
+    838.1 ms  ✓ PDMats → StatsBaseExt
+    Distributions Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Distributions/xILW0_YH49B.ji.pidfile)
+   4119.1 ms  ✓ Latexify
+    SparseArraysExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/SparseArraysExt/h5qXK_YH49B.ji.pidfile)
+   4703.2 ms  ✓ Transducers
+    TransducersAdaptExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/TransducersAdaptExt/H2bhQ_YH49B.ji.pidfile)
+    AbstractMCMC Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/AbstractMCMC/5x8OI_YH49B.ji.pidfile)
+   2090.8 ms  ✓ Clustering
+   1211.7 ms  ✓ Latexify → SparseArraysExt
+    Plots Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Plots/ld3vC_YH49B.ji.pidfile)
+   1184.3 ms  ✓ Transducers → TransducersAdaptExt
+   3500.1 ms  ✓ Optim
+   2488.5 ms  ✓ AbstractMCMC
+   5784.6 ms  ✓ Distributions
+    DistributionsTestExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DistributionsTestExt/Mb8xE_YH49B.ji.pidfile)
+    DistributionsChainRulesCoreExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DistributionsChainRulesCoreExt/uFTmV_YH49B.ji.pidfile)
+    MultivariateStats Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/MultivariateStats/l7I74_YH49B.ji.pidfile)
+   1687.4 ms  ✓ Distributions → DistributionsTestExt
+    AdvancedMH Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/AdvancedMH/MTkce_YH49B.ji.pidfile)
+   2114.9 ms  ✓ MultivariateStats
+   2724.9 ms  ✓ Distributions → DistributionsChainRulesCoreExt
+    KernelDensity Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/KernelDensity/4QyGx_YH49B.ji.pidfile)
+   1896.8 ms  ✓ KernelDensity
+   3449.6 ms  ✓ AdvancedMH
+    AdvancedMHForwardDiffExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/AdvancedMHForwardDiffExt/W2MQ8_YH49B.ji.pidfile)
+   2067.8 ms  ✓ AdvancedMH → AdvancedMHForwardDiffExt
+  17326.6 ms  ✓ CSV
+  22635.7 ms  ✓ PrettyTables
+    DataFrames Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DataFrames/AR9oZ_YH49B.ji.pidfile)
+  61548.4 ms  ✓ Plots
+    FileIOExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/FileIOExt/uE6Zh_YH49B.ji.pidfile)
+    StatsPlots Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/StatsPlots/SiylL_YH49B.ji.pidfile)
+   3779.6 ms  ✓ Plots → FileIOExt
+  48686.6 ms  ✓ DataFrames
+    BangBangDataFramesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/BangBangDataFramesExt/sNKPH_YH49B.ji.pidfile)
+    DataFramesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/DataFramesExt/8XGBh_YH49B.ji.pidfile)
+    TransducersDataFramesExt Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/TransducersDataFramesExt/u4UET_YH49B.ji.pidfile)
+   2265.9 ms  ✓ Latexify → DataFramesExt
+   2400.2 ms  ✓ Transducers → TransducersDataFramesExt
+   2483.2 ms  ✓ BangBang → BangBangDataFramesExt
+   8912.5 ms  ✓ StatsPlots
+    Utils Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/Utils/OIG8g_YH49B.ji.pidfile)
+   4852.6 ms  ✓ Utils
+    SMCsamplers Being precompiled by another process (pid: 603262, pidfile: /home/mv/.julia/compiled/v1.12/SMCsamplers/9IRyf_YH49B.ji.pidfile)
+   4857.8 ms  ✓ SMCsamplers
+  30 dependencies successfully precompiled in 86 seconds. 321 already precompiled.
+
+````
+
 ### Simulate data from a AR(1) model
 
 ````julia
@@ -653,7 +719,7 @@ for j = 1:nState
     plt_tmp = plot(timevect, paramEvol[:,j], lw = 2,
         c = :black, linestyle = :solid,
         label = "true", title = titles[j], legend = legendPos[j])
-    plot!(timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,1],
+    plot!(plt_tmp, timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,1],
         fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0)
     plot!(timevect, PGASmedian[:,j], fillrange = PGASquantiles[:,j,2],
         fillalpha = 0.2, fillcolor = :gray, label = "", lw = 0)
