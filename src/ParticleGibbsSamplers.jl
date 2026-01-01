@@ -3,15 +3,16 @@
         initproposal, resampler, Xref = nothing)  
 
 
-Single update step of the PGAS algorithm with `N` particles to simulate from the joint smoothing posterior of the state xₜ in the state space model determined by the three functions (that all return distributions):
-- `prior` is the prior for the initial state p(x₁) 
+Single update step of the PGAS algorithm with `N` particles in X (N×p×T) to simulate from the joint smoothing posterior of the state xₜ in the state space model determined by the three functions (that all return distributions):
+- `prior` is the prior for the initial state p(x₀) 
 - `transition` is the transition density p(xₜ | xₜ₋₁)
 - `observation` is the observation density p(yₜ | xₜ)
 param is a struct with all the parameters in the model needed to evaluate the prior, transition and observation densities.
 
-`initproposal` is the proposal distribution for x₁ and `resampler` is the resampling function which defaults to systematic resampling.
+`initproposal` is the proposal distribution for x₀ and `resampler` is the resampling function which defaults to systematic resampling.
 
-Xref is a T×p matrix with conditioning particle path - if nothing, unconditional PF is run
+Xref is a T×p matrix with conditioning particle path - if nothing, unconditional PF is run.
+If sample_t0 is true, then sample also a t=0.
 """ 
 function PGASsimulate!(X, y, p, N, param, prior, transition, observation,  
     initproposal, resampler, Xref = nothing; sample_t0 = true) 
@@ -19,7 +20,7 @@ function PGASsimulate!(X, y, p, N, param, prior, transition, observation,
     conditioning = !isnothing(Xref)
     T = length(y)
     if sample_t0
-        T = T + 1
+        T = T + 1 # t = 1 now really corresponds to t=0 in y
     end
     a = zeros(Int, N, T)    # Ancestor indices
     w = zeros(N, T)         # Weights
@@ -33,7 +34,7 @@ function PGASsimulate!(X, y, p, N, param, prior, transition, observation,
                 X[n,:,t] .= rand(initproposal)
             end  
             if conditioning
-                X[N,:,t] = Xref[t,:]; # Last particle according to the conditioning
+                X[N,:,t] = Xref[t,:]; # Last particle set to the reference particle
             end
 
             # Compute importance weights
@@ -62,16 +63,17 @@ function PGASsimulate!(X, y, p, N, param, prior, transition, observation,
                 ind = 1:N # no resampling
             end
 
+            # Propagate particles - bootstrap proposal
             for n in 1:N 
                 x = @view X[ind[n],:,t-1] 
                 X[n,:,t] .= rand(transition(param, (p==1) ? x[1] : x, t-sample_t0))
             end 
              
+            # Ancestor sampling
             if conditioning
                 @views X[N,:,t] = Xref[t,:]; # Set the N:th particle to the conditioning
             end
-            if conditioning && resample
-                # Ancestor sampling
+            if conditioning
                 for n = 1:N 
                     x = @view X[n,:,t-1]
                     xref = @view Xref[t,:]
@@ -81,6 +83,8 @@ function PGASsimulate!(X, y, p, N, param, prior, transition, observation,
                 w_as = w[:,t-1] .* exp.(γ .- maximum(γ))
                 w_as = w_as/sum(w_as)
                 ind[N] = findfirst(rand(1) .<= cumsum(w_as))
+            end
+            if resample
                 w[:,t-1] .= 1/N
             end
 
