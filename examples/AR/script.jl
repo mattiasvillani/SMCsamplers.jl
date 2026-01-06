@@ -30,6 +30,7 @@
 # This restriction brings a nonlinearity into the measurement model.
 
 # ### First some preliminaries:
+println(Base.active_project())
 using SMCsamplers, Plots, Distributions, LaTeXStrings, Random, ForwardDiff, PDMats
 using LinearAlgebra, Measures
 using Utils: quantile_multidim

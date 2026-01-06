@@ -60,10 +60,10 @@ plot!(y; seriestype=:scatter, label="observed, y", xlabel="t", markersize = 2,
     color = colors[1], markerstrokecolor = :auto)
 
 # ### PGAS sampling
-Nₚ = 20             # Number of particles for PGAS
-Nₛ = 10000;         # Number of samples from posterior
+nParticles = 20             # Number of particles for PGAS
+nSim = 10000;         # Number of samples from posterior
 sample_t0 = false    # Sample state at t=0 ?
-PGASdraws = PGASsampler(y, θ, Nₛ, Nₚ, prior, transition, observation; 
+PGASdraws = PGASsampler(y, θ, nSim, nParticles, prior, transition, observation; 
     sample_t0 = sample_t0)
 PGASmean = mean(PGASdraws, dims = 3)[:,:,1]
 PGASquantiles = quantile_multidim(PGASdraws, [0.025, 0.975], dims = 3);
@@ -78,7 +78,7 @@ A = θ.a
 C = 1
 B = 0
 U = zeros(T,1);
-FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, Nₛ; sample_t0 = sample_t0);
+FFBSdraws = FFBS(U, y, A, B, C, Σₑ, Σₙ, μ₀, Σ₀, nSim; sample_t0 = sample_t0);
 FFBSmean = mean(FFBSdraws, dims = 3) 
 FFBSquantiles = quantile_multidim(FFBSdraws, [0.025, 0.975], dims = 3);
 
@@ -97,7 +97,7 @@ for j in 1:p
 
     #PGAS
     plot!(PGASmean[:,j], lw = 1,
-        c = colors[j], linestyle = :solid, label = "PGAS(N=$Nₚ)")
+        c = colors[j], linestyle = :solid, label = "PGAS(N=$nParticles)")
     plot!(PGASquantiles[:,j,1], fillrange = PGASquantiles[:,j,2],
         fillalpha = 0.2, fillcolor = colors[j], linecolor = colors[j],
         label = "", lw = 0) 

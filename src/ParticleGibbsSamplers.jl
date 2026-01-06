@@ -53,26 +53,19 @@ function PGASsimulate!(X, y, p, N, param, prior, transition, observation,
             weights = exp.(logweights .- maximum(logweights))
             w[:,t] = weights/sum(weights) # Save the normalized weights
 
-            ind = 1:N
+            ind = collect(1:N)
         else # t ≥ 2
+
+            # Resampling
             resample = (ESS(w[:,t-1]) <= ESSthreshold)
             if resample
                 ResampleCount += 1
-                ind = resampler(w[:,t-1])
+                ind .= resampler(w[:,t-1])
             else
-                ind = 1:N # no resampling
+                ind .= 1:N # no resampling
             end
-
-            # Propagate particles - bootstrap proposal
-            for n in 1:N 
-                x = @view X[ind[n],:,t-1] 
-                X[n,:,t] .= rand(transition(param, (p==1) ? x[1] : x, t-sample_t0))
-            end 
              
             # Ancestor sampling
-            if conditioning
-                @views X[N,:,t] = Xref[t,:]; # Set the N:th particle to the conditioning
-            end
             if conditioning
                 for n = 1:N 
                     x = @view X[n,:,t-1]
@@ -90,6 +83,15 @@ function PGASsimulate!(X, y, p, N, param, prior, transition, observation,
 
             # Store the ancestor indices
             a[:,t] = ind;
+
+            # Propagate particles - bootstrap proposal
+            for n in 1:N 
+                x = @view X[ind[n],:,t-1] 
+                X[n,:,t] .= rand(transition(param, (p==1) ? x[1] : x, t-sample_t0))
+            end 
+            if conditioning
+                @views X[N,:,t] = Xref[t,:]; # Set the N:th particle to the conditioning
+            end
 
             # Compute importance weights
             for n in 1:N
