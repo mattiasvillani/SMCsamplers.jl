@@ -1,8 +1,8 @@
 # SMCsamplers.jl
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://mattiasvillani.github.io/SMCsamplers.jl/dev/)
-[![Build Status](https://github.com/mattiasvillani/SMCsamplers.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/mattiasvillani/SMCsamplers.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/mattiasvillani/SMCsamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/mattiasvillani/SMCsamplers.jl)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://compbayes.github.io/SMCsamplers.jl/dev/)
+[![Build Status](https://github.com/compbayes/SMCsamplers.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/compbayes/SMCsamplers.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/compbayes/SMCsamplers.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/compbayes/SMCsamplers.jl)
 
 ## Description
 
@@ -11,7 +11,7 @@ Julia implementation of some posterior samplers for state-space models with gene
 ## Installation
 Install from the Julia package manager (via Github) by typing `]` in the Julia REPL:
 ```
-] add git@github.com:mattiasvillani/SMCsamplers.jl.git
+] add git@github.com:compbayes/SMCsamplers.jl.git
 ```
 
 ## Example
