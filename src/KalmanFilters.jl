@@ -245,7 +245,7 @@ Reference: Simo Sarkka and Lennart Svensson (2023). Bayesian Filtering and Smoot
 """
 
 ## PrLF and IPLF
-function kalmanfilter_update_IPLF(μ, Ω, u, y, A, B,  condMean, condCov, Cargs,  Σₙ, 
+function kalmanfilter_update_IPLF(μ, Ω, u, y, A, B, condMean, condCov, param,  Σₙ, t,
     max_iterations, γ, ωₘ, ωₛ)
 
     ### Prior propagation
@@ -264,10 +264,8 @@ function kalmanfilter_update_IPLF(μ, Ω, u, y, A, B,  condMean, condCov, Cargs,
         χ = [μ μ .+ (L̄ * γ) μ .- (L̄ * γ)] # n×(2n+1) matrix with sigma points; N(μ, Ω)
 
         ## Propagate the sigma points through the conditional mean and covariance functions
-        println(χ[:, i])
-        println(χ)
-        μₖ = [[condMean(χ[:, i], Cargs[j]) for j in 1:size(y, 1)] for i in 1:size(χ, 2)]
-        Pₖʸ = [isa(p, Number) ? p * LinearAlgebra.I(size(y,1)) : Diagonal(p) for p in (condCov(χ[:, i], Cargs) for i in 1:size(χ, 2))]
+        μₖ =  [condMean(param, χ[:, i], t) for i in 1:size(χ, 2)]
+        Pₖʸ = [condCov(param, χ[:, i], t) for i in 1:size(χ, 2)]
 
         ## Compute the required moments:
         μₖ⁺ = sum(μₖ .* ωₘ) ## marginal mean of yₜ
@@ -310,11 +308,11 @@ end
 
 
 """ 
-    laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, θ, Σₙ, t) 
+    laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, param, Σₙ, t) 
 
 
 """ 
-function laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, θ, Σₙ, t, 
+function laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, param, Σₙ, t, 
         μ_init = nothing)
 
     # Prior propagation step - moving state forward without new measurement
@@ -324,7 +322,7 @@ function laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, θ, Σₙ,
     if isnothing(μ_init) μ_init = μ̄  end
 
     # Measurement update - updating the N(μ̄, Ω̄) prior with the new data point
-    filt_logpost(x) = logpdf(observation(θ, x, t), y) + logpdf(MvNormal(μ̄[:], Ω̄), x)
+    filt_logpost(x) = logpdf(observation(param, x, t), y) + logpdf(MvNormal(μ̄[:], Ω̄), x)
     μ, Ω = laplace_approximation(filt_logpost, μ_init)  # Initial guess 
 
     return μ, Ω, μ̄, Ω̄
