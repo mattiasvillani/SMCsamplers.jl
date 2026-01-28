@@ -226,7 +226,7 @@ end
 
 
 """ 
-    kalmanfilter_update_IPLF(μ, Ω, u, y, A, B,  condMean, condCov, Cargs,  Σₙ, max_iterations, γ, W) 
+    kalmanfilter_update_IPLF(μ, Ω, u, y, A, B,  condMean, condCov, Cargs,  Σₙ, maxIter, γ, W) 
 
 A single extended Kalman filter update at time t of the state space model: 
 
@@ -246,7 +246,7 @@ Reference: Simo Sarkka and Lennart Svensson (2023). Bayesian Filtering and Smoot
 
 ## PrLF and IPLF
 function kalmanfilter_update_IPLF(μ, Ω, u, y, A, B, condMean, condCov, param,  Σₙ, t,
-    max_iterations, γ, ωₘ, ωₛ)
+    maxIter, γ, ωₘ, ωₛ)
 
     ### Prior propagation
     μ̄ = A*μ .+ B*u
@@ -256,7 +256,7 @@ function kalmanfilter_update_IPLF(μ, Ω, u, y, A, B, condMean, condCov, param, 
     Ω = deepcopy(Ω̄) 
 
     ### Measurement update
-    for i in 1:max_iterations
+    for i in 1:maxIter
 
         L̄ = cholesky(Hermitian(Ω)).L
 
@@ -322,9 +322,15 @@ function laplace_kalmanfilter_update(μ, Ω, u, y, A, B, observation, param, Σ�
     if isnothing(μ_init) μ_init = μ̄  end
 
     # Measurement update - updating the N(μ̄, Ω̄) prior with the new data point
-    filt_logpost(x) = logpdf(observation(param, x, t), y) + logpdf(MvNormal(μ̄[:], Ω̄), x)
-    μ, Ω = laplace_approximation(filt_logpost, μ_init)  # Initial guess 
-
+    #try
+        filt_logpost(x) = logpdf(observation(param, x, t), y) + 
+            logpdf(MvNormal(μ̄[:], Ω̄), x)
+        μ, Ω = laplace_approximation(filt_logpost, μ_init)  # Initial guess 
+    #catch
+        #println("the prior cov is:", Ω̄)
+        #println("the prior var is:", diag(Ω̄))
+        #println("the eigenvals are:", eigvals(Ω̄))
+    #end
     return μ, Ω, μ̄, Ω̄
 end
 

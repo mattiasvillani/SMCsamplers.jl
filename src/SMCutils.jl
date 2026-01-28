@@ -42,9 +42,9 @@ end
 function splitEqualGroups(y, Z, nPerGroup)
     nElements = length(y)
     nGroups = ceil(Int, nElements/nPerGroup)
-    Y = []
+    Y = Vector{Vector{eltype(y)}}()
     if !isempty(Z) && !isnothing(Z) 
-        Zg = []
+        Zg = Vector{Matrix{eltype(Z)}}()
     else 
         Zg = nothing
     end
@@ -56,5 +56,6 @@ function splitEqualGroups(y, Z, nPerGroup)
         end
         i += nPerGroup
     end
-    return Y, Zg
+    groupSizes = length.(Y) 
+    return Y, Zg, groupSizes
 end

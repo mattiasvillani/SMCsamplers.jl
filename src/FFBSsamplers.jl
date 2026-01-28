@@ -296,7 +296,6 @@ function FFBS_SLR(U, Y, A, B, condMean::Function, condCov::Function, param, Σ�
         sample_t0 = true)
     T = length(Y)   # Number of time steps
     n = length(μ₀)  # Dimension of the state vector  
-    #r = size(Y,2)   # Dimension of the observed data vector
     q = size(U,2)   # Dimension of the control vector
     staticA = (ndims(A) == 3) ? false : true
     staticΣₙ = (ndims(Σₙ) == 3  || eltype(Σₙ) <: PDMat) ? false : true
